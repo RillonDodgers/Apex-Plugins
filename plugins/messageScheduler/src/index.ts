@@ -20,7 +20,7 @@ function schedule(channelId: string, content: string, at: number): string {
     MessageActions.sendMessage(channelId, { content: realMessage });
     delete timeoutIds[id];
     delete messageQueue[id];
-    showToast("📤 Scheduled message sent.");
+    showToast("Scheduled message sent.");
   }, delay);
 
   return id;
@@ -36,7 +36,6 @@ function parseScheduledTimeExtended(timeStr: string): number {
   const now = new Date();
   timeStr = timeStr.toLowerCase();
 
-  // Parsowanie formatu typu 1h30m, 2h, 45m, 10s
   const durRegex = /(\d+)(h|m|s)/g;
   let durationMs = 0;
   let durMatch;
@@ -49,7 +48,6 @@ function parseScheduledTimeExtended(timeStr: string): number {
   }
   if (durationMs > 0) return Date.now() + durationMs;
 
-  // Parsowanie formatu godziny typu 3:30pm, 15:30
   const timeRegex = /^(\d{1,2}):(\d{2})(am|pm)?$/;
   const timeMatch = timeStr.match(timeRegex);
   if (timeMatch) {
@@ -65,20 +63,17 @@ function parseScheduledTimeExtended(timeStr: string): number {
     const scheduled = new Date(now);
     scheduled.setHours(hours, minutes, 0, 0);
 
-    // Jeśli czas już minął, ustaw na jutro
     if (scheduled.getTime() <= now.getTime()) {
       scheduled.setDate(scheduled.getDate() + 1);
     }
 
     return scheduled.getTime();
   }
-
-  // Jeśli nic nie pasuje, zwróć 0
+  
   return 0;
 }
 
 export function onLoad() {
-  // REJESTRACJA /schedule
   commandSchedule = registerCommand({
     name: "schedule",
     displayName: "schedule",
@@ -103,21 +98,21 @@ export function onLoad() {
       const message = args[1]?.value;
 
       if (typeof timeStr !== "string" || timeStr.trim() === "") {
-        return Clyde.sendBotMessage(channelId, "⛔ Invalid time value!");
+        return Clyde.sendBotMessage(channelId, "Invalid time value!");
       }
 
       if (typeof message !== "string" || message.trim() === "") {
-        return Clyde.sendBotMessage(channelId, "⛔ Message cannot be empty!");
+        return Clyde.sendBotMessage(channelId, "Message cannot be empty!");
       }
 
       const at = parseScheduledTimeExtended(timeStr);
       if (at === 0 || at <= Date.now()) {
-        return Clyde.sendBotMessage(channelId, "⛔ Invalid or past time specified!");
+        return Clyde.sendBotMessage(channelId, "Invalid or past time specified!");
       }
 
       schedule(channelId, message, at);
       const secondsLeft = Math.round((at - Date.now()) / 1000);
-      Clyde.sendBotMessage(channelId, `🕓 Scheduled message in ${secondsLeft}s.`);
+      Clyde.sendBotMessage(channelId, `Scheduled message in ${secondsLeft}s.`);
     },
   });
 

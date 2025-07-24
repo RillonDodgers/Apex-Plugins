@@ -1,1 +1,14 @@
-// TYPE YOUR CONTEXT HERE SL
+{
+    "name": "WIP",
+    "description": "WORK IN PROGRESS BY OTHER MEMBER",
+    "authors": [
+        {
+            "name": "UR_NAMR_HERE",
+            "id": "ID_HERE"
+        }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_edit_24px"
+    }
+}

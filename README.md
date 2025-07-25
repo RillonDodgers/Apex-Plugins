@@ -1,4 +1,3 @@
-DELETE THIS
 # Apex Plugins
 This repo contains my own plugins for Revenge, mostly ports from [Vencore](https://github.com/ApexTeamPL/Vencore)
 

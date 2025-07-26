@@ -1,10 +1,10 @@
 {
-    "name": "WIP",
-    "description": "WORK IN PROGRESS BY OTHER MEMBER",
+    "name": "BetterNSFWGateBypass",
+    "description": "Allows you to access NSFW channels without setting/verifying your age",
     "authors": [
         {
-            "name": "UR_NAMR_HERE",
-            "id": "ID_HERE"
+            "name": "Slara",
+            "id": "1008715724115685449"
         }
     ],
     "main": "src/index.ts",

@@ -38,19 +38,22 @@ export default {
         storage.nsfwBypass ??= true;
         storage.showWarningPopup ??= true;
 
-        // NSFW bypass patches - only if enabled
+        // NSFW bypass patches - only if enabled (using exact working code)
         if (storage.nsfwBypass) {
             patches.push(instead("handleNSFWGuildInvite", NSFWStuff, () => false));
             patches.push(instead("isNSFWInvite", NSFWStuff, () => false));
             patches.push(instead("shouldNSFWGateGuild", NSFWStuff, () => false));
-        }
-        
-        // Age verification bypass - only if enabled
-        if (storage.ageBypass) {
             patches.push(after("getCurrentUser", UserStore, (_, user) => {
                 if (user?.hasOwnProperty("nsfwAllowed")) {
                     user.nsfwAllowed = true;
                 }
+                return user;
+            }));
+        }
+        
+        // Age verification bypass - only if enabled (separate feature)
+        if (storage.ageBypass) {
+            patches.push(after("getCurrentUser", UserStore, (_, user) => {
                 if (user?.hasOwnProperty("ageVerificationStatus")) {
                     user.ageVerificationStatus = 3; // VERIFIED_ADULT
                 }

@@ -3,7 +3,6 @@ name: Build and deploy
 on:
     push:
         branches: [master]
-        paths: [plugins]
 
 jobs:
     deploy:

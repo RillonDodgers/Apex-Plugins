@@ -1,8 +1,20 @@
 # BetterNSFWGateBypass 
 ## Allows you to access NSFW channels without setting your age.
+__ __
+### Guys... Thank you all for your support. Hope this plugin serves my UK friends well! And people like VMuser - just use the "Bypass gate" option.
+And VMuser, thanks for settings, it is pretty easy to manage settings with it.
+> I am waiting for Vencore version. I believe he can do it! The fact I almost gave up after he added passwords... Well, no not this time. It is for all UK people who doesn't want to give discord their IDs.
+Use it wisely as always (and don't spread it a lot or VMuser will add password again -_-)
+
+<img width="1500" height="500" alt="Untitled51_20250727210921" src="https://github.com/user-attachments/assets/f1dfb1b4-7397-4f9c-aafb-c41cf9c4a75a" />
+
+# SAVE THE UK GUYS!
 
 __ __
-### Well... NO!
+To owner of the repo: thanks for adjustments, keep up with your plugins, they're **AWESOME**.
+
+__ __
+### Well... NO! (let him do his polish yapping)
 This plugin was directly used and created by her to skip age verify (UK laws...) But hey... Isn't that illegal?!
 Yeah it mostly is and could lead me (the owner of Vencore and this repo) to some bad lawsuits or worse (even tho I'm from Poland).
 Therefore this plugin has been modded to bypass the GATE ONLY (aka soft banned accs which show You are too young to display this channel) not HACK YOUR AGE.

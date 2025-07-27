@@ -24,20 +24,22 @@ export const Settings: React.FC<SettingsProps> = () => {
     storage.showWarningPopup ??= true;
 
     const handleAgeBypassToggle = (value: boolean) => {
-        if (value) {
-            // Show password field instead of alert
+        if (value && !storage.ageBypass) {
+            // Show password field when trying to enable
             setShowPasswordField(true);
             setPasswordInput("");
-        } else {
+        } else if (!value) {
             // User is disabling - no password needed
             storage.ageBypass = false;
             setShowPasswordField(false);
             showToast("Age bypass disabled", findByProps("getAssetByName")?.getAssetByName("ic_info")?.id);
         }
+        // If already enabled and trying to enable again, do nothing
     };
 
     const handlePasswordSubmit = () => {
-        if (passwordInput === AGE_BYPASS_PASSWORD) {
+        // Convert both to strings for comparison
+        if (passwordInput === AGE_BYPASS_PASSWORD.toString() || passwordInput === AGE_BYPASS_PASSWORD) {
             storage.ageBypass = true;
             setShowPasswordField(false);
             setPasswordInput("");

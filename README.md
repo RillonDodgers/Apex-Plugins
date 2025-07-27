@@ -16,6 +16,6 @@ __ __
 
 **Planned/in development plugins**
 - LastSeen - see when user was last offline - a port from Vencore
-- ValidUser - fix mentions for unknown users showing up as '@unknown-user'
+- ValidUser - fix mentions for unknown users showing up as '@unknown-user'.
 - PlatformSwitcher - set custom platform status (mobile, web, desktop) - also port from Vencore
-- Currently MoreAlts is in closed beta stage, for testing DM me on discord or telegram to get access to beta files.
+- Currently MoreAlts is in closed beta stage, for testing DM me on discord or telegram to get access to beta files. 

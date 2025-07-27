@@ -3,58 +3,18 @@ import { useProxy } from "@vendetta/storage";
 import { React, ReactNative as RN } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
 import { semanticColors } from "@vendetta/ui";
-import { showConfirmationAlert } from "@vendetta/ui/alerts";
-import { showToast } from "@vendetta/ui/toasts";
 
-const { FormSection, FormRow, FormSwitchRow, FormText, FormInput } = findByProps("FormSection");
-
-// Use computational method
-const AGE_BYPASS_PASSWORD = ((x) => String(x * 59 + 3))(5000);
+const { FormSection, FormRow, FormSwitchRow, FormText } = findByProps("FormSection");
 
 interface SettingsProps {}
 
 export const Settings: React.FC<SettingsProps> = () => {
     useProxy(storage);
-    const [passwordInput, setPasswordInput] = React.useState("");
-    const [showPasswordField, setShowPasswordField] = React.useState(false);
 
     // Initialize default values
-    storage.ageBypass ??= false; // Default to false for password-protected feature
+    storage.ageBypass ??= false;
     storage.nsfwBypass ??= true;
     storage.showWarningPopup ??= true;
-
-    const handleAgeBypassToggle = (value: boolean) => {
-        if (value && !storage.ageBypass) {
-            // Show password field when trying to enable
-            setShowPasswordField(true);
-            setPasswordInput("");
-        } else if (!value) {
-            // User is disabling - no password needed
-            storage.ageBypass = false;
-            setShowPasswordField(false);
-            showToast("Age bypass disabled", findByProps("getAssetByName")?.getAssetByName("ic_info")?.id);
-        }
-        // If already enabled and trying to enable again, do nothing
-    };
-
-    const handlePasswordSubmit = () => {
-        // Convert both to strings for comparison
-        if (passwordInput === AGE_BYPASS_PASSWORD.toString() || passwordInput === AGE_BYPASS_PASSWORD) {
-            storage.ageBypass = true;
-            setShowPasswordField(false);
-            setPasswordInput("");
-            showToast("Age bypass enabled successfully", findByProps("getAssetByName")?.getAssetByName("ic_check")?.id);
-        } else {
-            showToast("Incorrect password", findByProps("getAssetByName")?.getAssetByName("ic_close")?.id);
-            setPasswordInput("");
-        }
-    };
-
-    const handlePasswordCancel = () => {
-        setShowPasswordField(false);
-        setPasswordInput("");
-        storage.ageBypass = false; // Ensure it stays disabled if cancelled
-    };
 
     return React.createElement(
         RN.ScrollView,
@@ -76,65 +36,15 @@ export const Settings: React.FC<SettingsProps> = () => {
             ),
             React.createElement(FormSwitchRow, {
                 label: "Enable Age Verification Bypass",
-                subLabel: "🔒 Password protected - Sets your account as verified adult",
+                subLabel: "Sets your account as verified adult",
                 leading: React.createElement(FormRow.Icon, {
-                    source: findByProps("getAssetByName")?.getAssetByName("ic_lock")?.id
+                    source: findByProps("getAssetByName")?.getAssetByName("ic_person")?.id
                 }),
                 value: storage.ageBypass,
-                onValueChange: handleAgeBypassToggle
+                onValueChange: (value: boolean) => {
+                    storage.ageBypass = value;
+                }
             }),
-            // Show password input field when needed
-            showPasswordField ? React.createElement(
-                React.Fragment,
-                {},
-                React.createElement(FormInput, {
-                    title: "Enter Password",
-                    placeholder: "Enter password to enable age bypass",
-                    value: passwordInput,
-                    onChange: setPasswordInput,
-                    secureTextEntry: true
-                }),
-                React.createElement(
-                    RN.View,
-                    { style: { flexDirection: "row", gap: 8, marginTop: 8, marginHorizontal: 16 } },
-                    React.createElement(
-                        RN.TouchableOpacity,
-                        {
-                            style: {
-                                backgroundColor: semanticColors.BUTTON_POSITIVE_BACKGROUND,
-                                padding: 12,
-                                borderRadius: 8,
-                                flex: 1,
-                                alignItems: "center"
-                            },
-                            onPress: handlePasswordSubmit
-                        },
-                        React.createElement(
-                            RN.Text,
-                            { style: { color: "white", fontWeight: "bold" } },
-                            "Confirm"
-                        )
-                    ),
-                    React.createElement(
-                        RN.TouchableOpacity,
-                        {
-                            style: {
-                                backgroundColor: semanticColors.BUTTON_DANGER_BACKGROUND,
-                                padding: 12,
-                                borderRadius: 8,
-                                flex: 1,
-                                alignItems: "center"
-                            },
-                            onPress: handlePasswordCancel
-                        },
-                        React.createElement(
-                            RN.Text,
-                            { style: { color: "white", fontWeight: "bold" } },
-                            "Cancel"
-                        )
-                    )
-                )
-            ) : null,
             React.createElement(FormSwitchRow, {
                 label: "Enable NSFW Content Bypass",
                 subLabel: "Bypasses all NSFW restrictions and gates completely",

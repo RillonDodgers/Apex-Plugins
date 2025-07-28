@@ -5,10 +5,11 @@ import Settings from "./Settings";
 
 let unpatch;
 
-// Audio URLs for rickroll (using public CDN links)
+// Audio URLs for rickroll (using reliable public sources)
 const RICKROLL_URLS = [
-    "https://www.myinstants.com/media/sounds/rick-roll.mp3",
-    "https://audio.jukehost.co.uk/tFkLhbRaHjQGx7UHwsQMEe3eTfQNK5H4", // Backup URL
+    "https://files.catbox.moe/pbtj68.mp3", // Direct MP3 link
+    "https://audio.jukehost.co.uk/tFkLhbRaHjQGx7UHwsQMEe3eTfQNK5H4", // Backup
+    "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" // Fallback sound
 ];
 
 // Play rickroll audio
@@ -71,30 +72,43 @@ export default {
         logger.log("🎵 Rickroll Plugin Loaded! Type /rick to rickroll! 🎵");
         
         try {
-            // Find the message store
-            const MessageStore = findByStoreName("MessageStore");
+            // Find the MessageActions for sending messages
+            const MessageActions = findByStoreName("MessageActions");
             
-            if (MessageStore) {
-                // Patch message sending
-                unpatch = before("sendMessage", MessageStore, (args) => {
+            if (MessageActions && MessageActions.sendMessage) {
+                // Patch the sendMessage function
+                unpatch = before("sendMessage", MessageActions, (args) => {
                     const [channelId, message] = args;
                     
                     if (checkForRickroll(message)) {
-                        // Play rickroll sound
+                        // Play rickroll sound locally for the user
                         setTimeout(() => {
                             playRickroll();
                         }, 100);
                         
                         // Replace the message content with rickroll text
-                        message.content = "🎵 **RICKROLLED!** 🎵\n*Never gonna give you up, never gonna let you down!* 🕺💃";
+                        message.content = "🎵 **RICKROLLED!** 🎵\n*Never gonna give you up, never gonna let you down!* 🕺💃\n\n*(You just got rickrolled by yourself!)*";
                         
                         logger.log("Rickroll activated! 🎵");
                     }
                 });
                 
-                logger.log("Successfully patched message sending for rickroll detection!");
+                logger.log("Successfully patched MessageActions for rickroll detection!");
             } else {
-                logger.log("Could not find MessageStore - rickroll might not work properly");
+                logger.log("Could not find MessageActions - trying alternative approach...");
+                
+                // Alternative: try to find the message store
+                const MessageStore = findByStoreName("MessageStore");
+                if (MessageStore) {
+                    unpatch = before("dispatch", MessageStore, (args) => {
+                        const [action] = args;
+                        if (action.type === "MESSAGE_CREATE" && action.message && checkForRickroll(action.message)) {
+                            setTimeout(() => {
+                                playRickroll();
+                            }, 100);
+                        }
+                    });
+                }
             }
         } catch (error) {
             logger.log("Error setting up rickroll plugin:", error);

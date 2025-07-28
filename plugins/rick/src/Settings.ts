@@ -11,8 +11,7 @@ export default () => {
                 trailing={FormRow.Arrow}
             >
                 <FormText>
-                    Type "/rick" or "/rickroll" in any channel to rickroll everyone! 
-                    The command will be replaced with rickroll text and play the iconic sound.
+                    Type "/rick" or "/rickroll" in any channel! Your message becomes rickroll text and YOU hear the sound locally.
                 </FormText>
             </FormRow>
             
@@ -21,7 +20,7 @@ export default () => {
                 trailing={FormRow.Arrow}
             >
                 <FormText>
-                    • Plays "Never Gonna Give You Up" audio{'\n'}
+                    • Plays audio locally (only you hear it){'\n'}
                     • Replaces your message with rickroll text{'\n'}
                     • Works in any Discord channel{'\n'}
                     • Multiple backup audio sources{'\n'}

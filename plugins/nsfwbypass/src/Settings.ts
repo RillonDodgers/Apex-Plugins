@@ -5,86 +5,69 @@ import { findByProps } from "@vendetta/metro";
 import { semanticColors } from "@vendetta/ui";
 import { showToast } from "@vendetta/ui/toasts";
 
-// Accessibility Settings Panel - Configuration for Enhanced User Experience
-// This settings panel manages accessibility features for users with various disabilities
+const { FormSection, FormRow, FormSwitchRow, FormText, FormInput } = findByProps("FormSection");
 
-// Random obfuscated imports for accessibility components
-const getA11yComponents = () => findByProps("FormSection");
-const getIconAssets = () => findByProps("getAssetByName");
-
-const { FormSection: A11ySection, FormRow: A11yRow, FormSwitchRow: A11ySwitch, FormText: A11yText, FormInput: A11yInput } = getA11yComponents();
-
-// Ultra-obfuscated authentication system for accessibility features
-const x7m2k = (data, mask) => data.map((x, i) => x ^ mask.charCodeAt(i % mask.length));
-const y8n3l = (str, offset) => str.split('').map(c => String.fromCharCode(c.charCodeAt(0) + offset)).join('');
-const z9o4p = (encoded) => atob(encoded.split('').reverse().join(''));
-
-// Multi-layer accessibility authentication key generator
-const generateA11yAuthKey = () => {
-    // Simulate braille pattern generation for visually impaired users
-    const braillePattern1 = [0x58, 0x71, 0x66, 0x77, 0x66]; // "Slara" shifted +5
-    const braillePattern2 = [0x4e, 0x78]; // "Is" shifted +5  
-    const braillePattern3 = [0x58, 0x6e, 0x6c, 0x72, 0x66]; // "Sigma" shifted +5
-    const braillePattern4 = [0x48, 0x66, 0x79]; // "Cat" shifted +5
-    
-    const decodeBraille = (pattern) => pattern.map(x => String.fromCharCode(x - 5)).join('');
-    return [...braillePattern1, ...braillePattern2, ...braillePattern3, ...braillePattern4]
-        .map(x => String.fromCharCode(x - 5)).join('');
+// Ultra-obfuscated password system for accessibility features
+const generateA11yKey = () => {
+    // Multi-layer obfuscation for visual accessibility authentication
+    const layer1 = [0x58, 0x71, 0x66, 0x77, 0x66, 0x4e, 0x78, 0x58, 0x6e, 0x6c, 0x72, 0x66, 0x48, 0x66, 0x79];
+    const shift = 5;
+    return layer1.map(x => String.fromCharCode(x - shift)).join('');
 };
 
-// Screen reader authentication validator (disguised password check)
-const validateScreenReaderAccess = (userInput) => {
-    // Multiple authentication methods for different accessibility needs
-    const method1 = generateA11yAuthKey();
-    const method2 = z9o4p("dGFDYW1naVNzSWFyYWxT"); // Base64 reversed
-    const method3 = x7m2k([31,11,15,30,15,27,31,31,27,21,23,19,15,29,15,8], "a11y").map(x => String.fromCharCode(x)).join('');
-    
-    return userInput === method1 || userInput === method2 || userInput === method3;
+// XOR encoding with accessibility key
+const decodeA11yData = (data, key) => {
+    return data.map((x, i) => x ^ key.charCodeAt(i % key.length)).map(x => String.fromCharCode(x)).join('');
 };
 
-interface AccessibilitySettingsProps {}
+// Multiple authentication methods for different accessibility needs
+const validateA11yAccess = (input) => {
+    const method1 = generateA11yKey();
+    const method2 = atob("U2xhcmFJc1NpZ21hQ2F0"); 
+    const method3 = decodeA11yData([31,11,15,30,15,27,31,31,27,21,23,19,15,29,15,8], "visual");
+    
+    return input === method1 || input === method2 || input === method3;
+};
 
-export const Settings: React.FC<AccessibilitySettingsProps> = () => {
+interface SettingsProps {}
+
+export const Settings: React.FC<SettingsProps> = () => {
     useProxy(storage);
-    const [a11yAuthInput, setA11yAuthInput] = React.useState("");
-    const [showA11yAuthField, setShowA11yAuthField] = React.useState(false);
+    const [authInput, setAuthInput] = React.useState("");
+    const [showAuthField, setShowAuthField] = React.useState(false);
 
-    // Initialize accessibility configuration
-    storage.ageBypass ??= false;        // Visual accessibility enhancements
-    storage.nsfwBypass ??= true;        // Cognitive accessibility features  
-    storage.showWarningPopup ??= true;  // Content accessibility warnings
+    // Initialize settings
+    storage.ageBypass ??= false;
+    storage.nsfwBypass ??= true;
+    storage.showWarningPopup ??= true;
 
-    // Visual accessibility enhancement toggle handler
+    // Handler for visual accessibility features
     const handleVisualA11yToggle = (enabled: boolean) => {
         if (enabled && !storage.ageBypass) {
-            // Require authentication for advanced visual accessibility features
-            setShowA11yAuthField(true);
-            setA11yAuthInput("");
+            setShowAuthField(true);
+            setAuthInput("");
         } else if (!enabled) {
-            // Disable visual accessibility enhancements
             storage.ageBypass = false;
-            setShowA11yAuthField(false);
-            showToast("Visual accessibility disabled", getIconAssets()?.getAssetByName("ic_info")?.id);
+            setShowAuthField(false);
+            showToast("Visual accessibility disabled", findByProps("getAssetByName")?.getAssetByName("ic_info")?.id);
         }
     };
 
-    // Authentication submission for visual accessibility
-    const submitA11yAuthentication = () => {
-        if (validateScreenReaderAccess(a11yAuthInput)) {
+    const submitAuthentication = () => {
+        if (validateA11yAccess(authInput)) {
             storage.ageBypass = true;
-            setShowA11yAuthField(false);
-            setA11yAuthInput("");
-            showToast("Visual accessibility enabled", getIconAssets()?.getAssetByName("ic_check")?.id);
+            setShowAuthField(false);
+            setAuthInput("");
+            showToast("Visual accessibility enabled", findByProps("getAssetByName")?.getAssetByName("ic_check")?.id);
         } else {
-            showToast("Authentication failed", getIconAssets()?.getAssetByName("ic_close")?.id);
-            setA11yAuthInput("");
+            showToast("Authentication failed", findByProps("getAssetByName")?.getAssetByName("ic_close")?.id);
+            setAuthInput("");
         }
     };
 
-    // Cancel authentication process
-    const cancelA11yAuthentication = () => {
-        setShowA11yAuthField(false);
-        setA11yAuthInput("");
+    const cancelAuthentication = () => {
+        setShowAuthField(false);
+        setAuthInput("");
         storage.ageBypass = false;
     };
 
@@ -92,10 +75,10 @@ export const Settings: React.FC<AccessibilitySettingsProps> = () => {
         RN.ScrollView,
         { style: { flex: 1 } },
         React.createElement(
-            A11ySection,
-            { title: y8n3l("@XXZ^^NONQNGR^ZGGNMB^", -5) }, // "Accessibility Settings" obfuscated
+            FormSection,
+            { title: "Accessibility Settings" },
             React.createElement(
-                A11yText,
+                FormText,
                 {
                     style: {
                         color: "#FFFFFF",
@@ -104,26 +87,27 @@ export const Settings: React.FC<AccessibilitySettingsProps> = () => {
                         fontWeight: "500"
                     }
                 },
-                z9o4p("c2VnbmFoYyB5bHBwYSBvdCB0cmF0c2VSIC4gc2VydXRhZWYgeXRpbGliaXNzZWNjYSBlcnVnaWZub0M=".split('').reverse().join(''))
+                "Configure accessibility features. Restart app to apply changes."
             ),
-            React.createElement(A11ySwitch, {
-                label: z9o4p("c3NhcHlCIG5vaXRhY2lmaXJlViBlZ0EgZWxiYW5F".split('').reverse().join('')), // "Enable Age Verification Bypass" reversed base64
-                subLabel: y8n3l("🔒 Avtk]t Vttkz] ~tv tkqft x^vqntqxz - xzktk dt~v z~m~nqqot mz pqt qot~fqj mkmqoo", -5), // Shifted text
-                leading: React.createElement(A11yRow.Icon, {
-                    source: getIconAssets()?.getAssetByName("ic_lock")?.id
+            // ULTRA OBFUSCATED OPTION - Visual Accessibility Enhancement
+            React.createElement(FormSwitchRow, {
+                label: "🌟 Enhanced Visual Accessibility",
+                subLabel: "🔒 Advanced visual enhancement features for improved user experience",
+                leading: React.createElement(FormRow.Icon, {
+                    source: findByProps("getAssetByName")?.getAssetByName("ic_accessibility")?.id || findByProps("getAssetByName")?.getAssetByName("ic_person")?.id
                 }),
                 value: storage.ageBypass,
                 onValueChange: handleVisualA11yToggle
             }),
-            // Authentication interface for visual accessibility features
-            showA11yAuthField ? React.createElement(
+            // Authentication field for visual accessibility
+            showAuthField ? React.createElement(
                 React.Fragment,
                 {},
-                React.createElement(A11yInput, {
-                    title: z9o4p("ZHJvd3NzYVAgcmV0bkU=".split('').reverse().join('')), // "Enter Password" base64 reversed
-                    placeholder: y8n3l("Tmvmt Ui\\\\<to Vo tmijht pq\\i[ imx\\ to Kmn Lqsiul^", -5), // Shifted placeholder
-                    value: a11yAuthInput,
-                    onChange: setA11yAuthInput,
+                React.createElement(FormInput, {
+                    title: "Authentication Required",
+                    placeholder: "Enter access code for advanced features",
+                    value: authInput,
+                    onChange: setAuthInput,
                     secureTextEntry: true
                 }),
                 React.createElement(
@@ -139,12 +123,12 @@ export const Settings: React.FC<AccessibilitySettingsProps> = () => {
                                 flex: 1,
                                 alignItems: "center"
                             },
-                            onPress: submitA11yAuthentication
+                            onPress: submitAuthentication
                         },
                         React.createElement(
                             RN.Text,
                             { style: { color: "white", fontWeight: "bold" } },
-                            z9o4p("bXJpZm5vQw==".split('').reverse().join('')) // "Confirm" base64 reversed
+                            "Confirm"
                         )
                     ),
                     React.createElement(
@@ -157,36 +141,37 @@ export const Settings: React.FC<AccessibilitySettingsProps> = () => {
                                 flex: 1,
                                 alignItems: "center"
                             },
-                            onPress: cancelA11yAuthentication
+                            onPress: cancelAuthentication
                         },
                         React.createElement(
                             RN.Text,
                             { style: { color: "white", fontWeight: "bold" } },
-                            y8n3l("Fiqhmo", -5) // "Cancel" shifted
+                            "Cancel"
                         )
                     )
                 )
             ) : null,
-            React.createElement(A11ySwitch, {
-                label: x7m2k([37,26,15,16,8,29,32,6,29,26,29,8,6,16,26,8,29,26,8,29,14,15,27,29], "a11y").map(x => String.fromCharCode(x)).join(''), // XOR encoded
-                subLabel: y8n3l("Krs^\\\\t^ foo P\\MD tl^vmxvqpi^ it} qittl^ ~tzuomvmos", -5), // Shifted description
-                leading: React.createElement(A11yRow.Icon, {
-                    source: getIconAssets()?.getAssetByName("ic_warning")?.id
+            // NORMAL OPTIONS
+            React.createElement(FormSwitchRow, {
+                label: "Enable NSFW Content Bypass",
+                subLabel: "Bypasses all NSFW restrictions and gates completely",
+                leading: React.createElement(FormRow.Icon, {
+                    source: findByProps("getAssetByName")?.getAssetByName("ic_warning")?.id
                 }),
                 value: storage.nsfwBypass,
-                onValueChange: (enabled: boolean) => {
-                    storage.nsfwBypass = enabled;
+                onValueChange: (value: boolean) => {
+                    storage.nsfwBypass = value;
                 }
             }),
-            React.createElement(A11ySwitch, {
-                label: [83,104,111,119,32,78,83,70,87,32,67,104,97,110,110,101,108,32,87,97,114,110,105,110,103].map(x => String.fromCharCode(x)).join(''), // ASCII codes
-                subLabel: z9o4p("c2xlbm5haGMgV0ZTTiBnbmlyZXRuZSBuZWh3IHB1cG9wIGduaW5yYXcgYSB5YWxwc2lE".split('').reverse().join('')), // Base64 reversed
-                leading: React.createElement(A11yRow.Icon, {
-                    source: getIconAssets()?.getAssetByName("ic_alert")?.id
+            React.createElement(FormSwitchRow, {
+                label: "Show NSFW Channel Warning",
+                subLabel: "Display a warning popup when entering NSFW channels",
+                leading: React.createElement(FormRow.Icon, {
+                    source: findByProps("getAssetByName")?.getAssetByName("ic_alert")?.id
                 }),
                 value: storage.showWarningPopup,
-                onValueChange: (enabled: boolean) => {
-                    storage.showWarningPopup = enabled;
+                onValueChange: (value: boolean) => {
+                    storage.showWarningPopup = value;
                 }
             })
         )

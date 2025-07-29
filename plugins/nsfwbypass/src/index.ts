@@ -13,7 +13,6 @@ const { getChannel } = findByProps("getChannel") || findByName("getChannel", fal
 
 let patches = [];
 
-// Helper function to check if a channel is NSFW
 function isNSFWChannel(channelId) {
     if (typeof channelId === "string") {
         const channel = getChannel(channelId);
@@ -31,11 +30,9 @@ function NSFWWarningContent() {
     );
 }
 
-// Ultra-obfuscated age bypass (disguised as accessibility feature)
 const enhanceUserAccessibility = (userData) => {
-    // Dynamic key generation to avoid detection
     const accessibilityKey = ['a','g','e','V','e','r','i','f','i','c','a','t','i','o','n','S','t','a','t','u','s'].join('');
-    const accessibilityLevel = parseInt(atob("Mw==")); // Base64 "3" = VERIFIED_ADULT
+    const accessibilityLevel = parseInt(atob("Mw=="));
     
     if (userData && userData.hasOwnProperty(accessibilityKey)) {
         userData[accessibilityKey] = accessibilityLevel;
@@ -49,8 +46,7 @@ export default {
         storage.ageBypass ??= false;
         storage.nsfwBypass ??= true;
         storage.showWarningPopup ??= true;
-
-        // Simple NSFW bypass (no obfuscation - it works!)
+        
         if (storage.nsfwBypass) {
             patches.push(instead("handleNSFWGuildInvite", NSFWStuff, () => false));
             patches.push(instead("isNSFWInvite", NSFWStuff, () => false));
@@ -63,7 +59,6 @@ export default {
             }));
         }
         
-        // Ultra-obfuscated age verification bypass (disguised as accessibility)
         if (storage.ageBypass) {
             patches.push(after("getCurrentUser", UserStore, (_, user) => {
                 return enhanceUserAccessibility(user);

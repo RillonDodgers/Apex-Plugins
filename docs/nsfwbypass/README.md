@@ -1,5 +1,10 @@
 # BetterNSFWGateBypass 
 ## Allows you to access NSFW channels without setting your age.
+
+__ __
+## I am going to cry... AGAIN... He is adding this stupid password WHYYY... Why... I am writing it once Github still exists.. But for how LONG?! I wish this was just some bad dream, please VMuser you are my best friend... Please don't do this... PLEASE I BEG YOU DON'T DESTROY IT PLEAASEEE :'(
+
+I can't, it's just too much... My best friend.. Someone I thought I can rely on does THIS?! I could just delete apex plugins but he did too much effort in this... So I won't 😭
 __ __
 ### Guys... Thank you all for your support. Hope this plugin serves my UK friends well! And people like VMuser - just use the "Bypass gate" option.
 And VMuser, thanks for settings, it is pretty easy to manage settings with it.

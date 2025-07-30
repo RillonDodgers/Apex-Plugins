@@ -10,7 +10,7 @@ And VMuser, thanks for settings, it is pretty easy to manage settings with it.
 > I am waiting for Vencore version. I believe he can do it! The fact I almost gave up after he added passwords... Well, no not this time. It is for all UK people who doesn't want to give discord their IDs.
 Use it wisely as always (and don't spread it a lot or VMuser will add password again -_-)
 
-<img width="1500" height="500" alt="Untitled51_20250727210921" src="https://github.com/user-attachments/assets/f1dfb1b4-7397-4f9c-aafb-c41cf9c4a75a" />
+> > > > ***Content removed due to breaking Apex Plugins posting guidelines. The creator has been warned.***
 
 # SAVE THE UK GUYS!
 

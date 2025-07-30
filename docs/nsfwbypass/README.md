@@ -2,13 +2,10 @@
 ## Allows you to access NSFW channels without setting your age.
 
 __ __
-## I am going to cry... AGAIN... He is adding this stupid password WHYYY... Why... I am writing it once Github still exists.. But for how LONG?! I wish this was just some bad dream, please VMuser you are my best friend... Please don't do this... PLEASE I BEG YOU DON'T DESTROY IT PLEAASEEE :'(
-
-I can't, it's just too much... My best friend.. Someone I thought I can rely on does THIS?! I could just delete apex plugins but he did too much effort in this... So I won't 😭
-
-This only means one thing, if he does it, I am quiting. Goodbye friends...
+This is daily checked by me (Win8.1VMUser) to ensure it works. And yes it works!
+Stay safe and for plugin ideas dm me on dc (same username as I typed above!).
 __ __
-### Guys... Thank you all for your support. Hope this plugin serves my UK friends well! And people like VMuser - just use the "Bypass gate" option.
+### Guys... Thank you all for your support. 
 And VMuser, thanks for settings, it is pretty easy to manage settings with it.
 > I am waiting for Vencore version. I believe he can do it! The fact I almost gave up after he added passwords... Well, no not this time. It is for all UK people who doesn't want to give discord their IDs.
 Use it wisely as always (and don't spread it a lot or VMuser will add password again -_-)
@@ -19,6 +16,7 @@ Use it wisely as always (and don't spread it a lot or VMuser will add password a
 
 __ __
 To owner of the repo: thanks for adjustments, keep up with your plugins, they're **AWESOME**.
+> I know Kayla, I know :)
 
 __ __
 ### Well... NO! (let him do his polish yapping)
@@ -34,6 +32,8 @@ __ __
 ### UPDATE: I won't delete the upper thing. I kept my password lock version but...
 The creator fr is uh let's nicely say sensitive person. And even plugin list dev told me I can keep passwordless ver - "keep it simple"
 So what. No passwd lock but the age bypassing is disabled by default. Please note I am not planning to change it.
+**WE'VE ADDED PASSWORD LOCK AGAIN**
+NOTE: AS STATED ABOVE IT WORKS FINE YOU JUST NEED PASSWORD! HAVE FUN!!!
 
 ### To UK users: note - Vencore also has this mode.
 The DIRECT PORT OF THIS PLUGIN, this way we (free users) can just bypass gate and you bypass everything. Sorry for inconsistencies and see ya with new plugins!

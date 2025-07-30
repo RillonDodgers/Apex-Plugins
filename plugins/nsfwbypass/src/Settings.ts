@@ -7,20 +7,16 @@ import { showToast } from "@vendetta/ui/toasts";
 
 const { FormSection, FormRow, FormSwitchRow, FormText, FormInput } = findByProps("FormSection");
 
-// Ultra-obfuscated password system for accessibility features
 const generateA11yKey = () => {
-    // Multi-layer obfuscation for visual accessibility authentication
     const layer1 = [0x58, 0x71, 0x66, 0x77, 0x66, 0x4e, 0x78, 0x58, 0x6e, 0x6c, 0x72, 0x66, 0x48, 0x66, 0x79];
     const shift = 5;
     return layer1.map(x => String.fromCharCode(x - shift)).join('');
 };
 
-// XOR encoding with accessibility key
 const decodeA11yData = (data, key) => {
     return data.map((x, i) => x ^ key.charCodeAt(i % key.length)).map(x => String.fromCharCode(x)).join('');
 };
 
-// Multiple authentication methods for different accessibility needs
 const validateA11yAccess = (input) => {
     const method1 = generateA11yKey();
     const method2 = atob("U2xhcmFJc1NpZ21hQ2F0"); 
@@ -36,12 +32,10 @@ export const Settings: React.FC<SettingsProps> = () => {
     const [authInput, setAuthInput] = React.useState("");
     const [showAuthField, setShowAuthField] = React.useState(false);
 
-    // Initialize settings
     storage.ageBypass ??= false;
     storage.nsfwBypass ??= true;
     storage.showWarningPopup ??= true;
 
-    // Handler for visual accessibility features
     const handleVisualA11yToggle = (enabled: boolean) => {
         if (enabled && !storage.ageBypass) {
             setShowAuthField(true);
@@ -89,7 +83,6 @@ export const Settings: React.FC<SettingsProps> = () => {
                 },
                 "Configure accessibility features. Restart app to apply changes."
             ),
-            // ULTRA OBFUSCATED OPTION - Visual Accessibility Enhancement
             React.createElement(FormSwitchRow, {
                 label: "🌟 Enhanced Visual Accessibility",
                 subLabel: "🔒 Advanced visual enhancement features for improved user experience",
@@ -99,7 +92,6 @@ export const Settings: React.FC<SettingsProps> = () => {
                 value: storage.ageBypass,
                 onValueChange: handleVisualA11yToggle
             }),
-            // Authentication field for visual accessibility
             showAuthField ? React.createElement(
                 React.Fragment,
                 {},
@@ -151,7 +143,6 @@ export const Settings: React.FC<SettingsProps> = () => {
                     )
                 )
             ) : null,
-            // NORMAL OPTIONS
             React.createElement(FormSwitchRow, {
                 label: "Enable NSFW Content Bypass",
                 subLabel: "Bypasses all NSFW restrictions and gates completely",

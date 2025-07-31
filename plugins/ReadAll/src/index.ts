@@ -2,6 +2,20 @@ import { findByStoreName, findByProps } from "@vendetta/metro";
 import { showToast } from "@vendetta/ui/toasts";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { registerCommand } from "@vendetta/commands";
+import { 
+  isServerExcluded, 
+  isDMExcluded,
+  addServerException,
+  removeServerException,
+  addDMException,
+  removeDMException,
+  clearAllExceptions,
+  getAllExceptions,
+  getServerName,
+  getDMName
+} from "./Settings";
+import { React } from "@vendetta/metro/common";
+import { Forms } from "@vendetta/ui/components";
 
 let GuildStore: any;
 let GuildChannelStore: any;
@@ -135,6 +149,9 @@ const getServerChannels = () => {
         const channel = c?.channel || c;
         if (!channel?.id) return;
 
+        // Skip if server is in exceptions
+        if (isServerExcluded(guild.id)) return;
+
         try {
           if (ReadStateStore.hasUnread && ReadStateStore.hasUnread(channel.id)) {
             channels.push({
@@ -157,6 +174,9 @@ const getDMUnreadChannels = () => {
   
   dmChannels.forEach((channel: any) => {
     if (!channel?.id) return;
+    
+    // Skip if DM is in exceptions
+    if (isDMExcluded(channel.id)) return;
     
     try {
       let hasUnread = false;
@@ -288,6 +308,125 @@ const readDMNotifications = () => {
   bulkAckNotifications('dm');
 };
 
+const SettingsComponent = () => {
+  const [serverInput, setServerInput] = React.useState("");
+  const [dmInput, setDMInput] = React.useState("");
+  const [exceptions, setExceptions] = React.useState(getAllExceptions());
+
+  const refreshExceptions = () => {
+    setExceptions(getAllExceptions());
+  };
+
+  const handleAddServer = () => {
+    if (serverInput.trim()) {
+      const success = addServerException(serverInput.trim());
+      if (success) {
+        showToast(`Added server to exceptions`, getAssetIDByName("ic_check"));
+        setServerInput("");
+        refreshExceptions();
+      } else {
+        showToast("Server already in exceptions", getAssetIDByName("ic_close_16px"));
+      }
+    }
+  };
+
+  const handleAddDM = () => {
+    if (dmInput.trim()) {
+      const success = addDMException(dmInput.trim());
+      if (success) {
+        showToast(`Added DM to exceptions`, getAssetIDByName("ic_check"));
+        setDMInput("");
+        refreshExceptions();
+      } else {
+        showToast("DM already in exceptions", getAssetIDByName("ic_close_16px"));
+      }
+    }
+  };
+
+  const handleRemoveServer = (serverId: string) => {
+    removeServerException(serverId);
+    showToast("Server removed from exceptions", getAssetIDByName("ic_check"));
+    refreshExceptions();
+  };
+
+  const handleRemoveDM = (channelId: string) => {
+    removeDMException(channelId);
+    showToast("DM removed from exceptions", getAssetIDByName("ic_check"));
+    refreshExceptions();
+  };
+
+  const handleClearAll = () => {
+    clearAllExceptions();
+    showToast("All exceptions cleared", getAssetIDByName("ic_check"));
+    refreshExceptions();
+  };
+
+  return React.createElement(React.Fragment, null,
+    React.createElement(Forms.FormSection, { title: "Server Exceptions" },
+      React.createElement(Forms.FormText, { style: { marginBottom: 10 } }, 
+        "Add server IDs to exclude from notification clearing:"
+      ),
+      React.createElement(Forms.FormInput, {
+        placeholder: "Enter server ID (e.g., 1325923169164333178)",
+        value: serverInput,
+        onChange: setServerInput,
+        onSubmitEditing: handleAddServer
+      }),
+      React.createElement(Forms.FormRow, {
+        label: "Add Server",
+        onPress: handleAddServer
+      }),
+      exceptions.servers.map((server, index) =>
+        React.createElement(Forms.FormRow, {
+          key: server.id,
+          label: server.name,
+          subLabel: server.id,
+          trailing: React.createElement(Forms.FormRow, {
+            label: "Remove",
+            style: { color: "#ff4757" },
+            onPress: () => handleRemoveServer(server.id)
+          })
+        })
+      )
+    ),
+    
+    React.createElement(Forms.FormSection, { title: "DM Exceptions" },
+      React.createElement(Forms.FormText, { style: { marginBottom: 10 } }, 
+        "Add channel IDs to exclude from notification clearing:"
+      ),
+      React.createElement(Forms.FormInput, {
+        placeholder: "Enter channel ID (e.g., 1258452286682697890)",
+        value: dmInput,
+        onChange: setDMInput,
+        onSubmitEditing: handleAddDM
+      }),
+      React.createElement(Forms.FormRow, {
+        label: "Add DM",
+        onPress: handleAddDM
+      }),
+      exceptions.dms.map((dm, index) =>
+        React.createElement(Forms.FormRow, {
+          key: dm.id,
+          label: dm.name,
+          subLabel: dm.id,
+          trailing: React.createElement(Forms.FormRow, {
+            label: "Remove",
+            style: { color: "#ff4757" },
+            onPress: () => handleRemoveDM(dm.id)
+          })
+        })
+      )
+    ),
+    
+    React.createElement(Forms.FormSection, { title: "Actions" },
+      React.createElement(Forms.FormRow, {
+        label: "Clear All Exceptions",
+        onPress: handleClearAll
+      })
+    )
+  );
+};
+
 export default {
   onLoad: () => {
     initModules();
@@ -299,6 +438,16 @@ export default {
         applicationId: "-1",
         execute: () => {
           readMainNotifications();
+          return;
+        }
+      });
+
+      readAllCommandUnregister = registerCommand({
+        name: "read all",
+        description: "Clear server unread notifications only",
+        applicationId: "-1",
+        execute: () => {
+          readAllNotifications();
           return;
         }
       });
@@ -350,5 +499,7 @@ export default {
         readDMCommandUnregister = null;
       } catch (e) {}
     }
-  }
+  },
+
+  settings: SettingsComponent
 };

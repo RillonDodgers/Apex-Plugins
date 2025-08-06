@@ -3,34 +3,23 @@ import { useProxy } from "@vendetta/storage";
 import { React, ReactNative as RN } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
 import { semanticColors } from "@vendetta/ui";
-import { showToast } from "@vendetta/ui/toasts";
+import { showConfirmationAlert } from "@vendetta/ui/alerts";
+import { url } from "@vendetta/metro/common";
 
-const { FormSection, FormRow, FormSwitchRow, FormText, FormInput } = findByProps("FormSection");
+const { FormSection, FormRow, FormSwitchRow, FormText } = findByProps("FormSection");
 
-const generateA11yKey = () => {
-    const layer1 = [0x58, 0x71, 0x66, 0x77, 0x66, 0x4e, 0x78, 0x58, 0x6e, 0x6c, 0x72, 0x66, 0x48, 0x66, 0x79];
-    const shift = 5;
-    return layer1.map(x => String.fromCharCode(x - shift)).join('');
-};
-
-const decodeA11yData = (data, key) => {
-    return data.map((x, i) => x ^ key.charCodeAt(i % key.length)).map(x => String.fromCharCode(x)).join('');
-};
-
-const validateA11yAccess = (input) => {
-    const method1 = generateA11yKey();
-    const method2 = atob("U2xhcmFJc1NpZ21hQ2F0"); 
-    const method3 = decodeA11yData([31,11,15,30,15,27,31,31,27,21,23,19,15,29,15,8], "visual");
-    
-    return input === method1 || input === method2 || input === method3;
+const WarningContent = () => {
+    return React.createElement(
+        RN.Text,
+        { style: { fontSize: 14, lineHeight: 20 } },
+        "WARNING: Enabling this option may lead to legal consequences. By using this option you agree to NOT report any issues to us and use it wisely. We do not take any responsibility for your account or data by using this mode. If this mode doesn't work please click the buttons below to read an article about how to bypass the check without the plugin."
+    );
 };
 
 interface SettingsProps {}
 
 export const Settings: React.FC<SettingsProps> = () => {
     useProxy(storage);
-    const [authInput, setAuthInput] = React.useState("");
-    const [showAuthField, setShowAuthField] = React.useState(false);
 
     storage.ageBypass ??= false;
     storage.nsfwBypass ??= true;
@@ -38,31 +27,35 @@ export const Settings: React.FC<SettingsProps> = () => {
 
     const handleVisualA11yToggle = (enabled: boolean) => {
         if (enabled && !storage.ageBypass) {
-            setShowAuthField(true);
-            setAuthInput("");
+            showConfirmationAlert({
+                title: "⚠️ Legal Warning",
+                content: React.createElement(WarningContent),
+                confirmText: "I Understand and Accept",
+                cancelText: "Cancel",
+                onConfirm: () => {
+                    // Show second confirmation after first one
+                    showConfirmationAlert({
+                        title: "✋ Hang on!",
+                        content: React.createElement(
+                            RN.Text,
+                            { style: { fontSize: 14, lineHeight: 20 } },
+                            "Please confirm you are over 18 years old and update your settings to see potentially inappropriate and sensitive content."
+                        ),
+                        confirmText: "I'm 18+ and Accept",
+                        cancelText: "Cancel",
+                        onConfirm: () => {
+                            storage.ageBypass = true;
+                        },
+                    });
+                },
+            });
         } else if (!enabled) {
             storage.ageBypass = false;
-            setShowAuthField(false);
-            showToast("Visual accessibility disabled", findByProps("getAssetByName")?.getAssetByName("ic_info")?.id);
         }
     };
 
-    const submitAuthentication = () => {
-        if (validateA11yAccess(authInput)) {
-            storage.ageBypass = true;
-            setShowAuthField(false);
-            setAuthInput("");
-            showToast("Visual accessibility enabled", findByProps("getAssetByName")?.getAssetByName("ic_check")?.id);
-        } else {
-            showToast("Authentication failed", findByProps("getAssetByName")?.getAssetByName("ic_close")?.id);
-            setAuthInput("");
-        }
-    };
-
-    const cancelAuthentication = () => {
-        setShowAuthField(false);
-        setAuthInput("");
-        storage.ageBypass = false;
+    const openDocsLink = () => {
+        url.openURL("https://github.com/ApexTeamPL/Apex-Plugins/tree/master/docs/nsfwbypass");
     };
 
     return React.createElement(
@@ -85,64 +78,13 @@ export const Settings: React.FC<SettingsProps> = () => {
             ),
             React.createElement(FormSwitchRow, {
                 label: "🌟 Enhanced Visual Accessibility",
-                subLabel: "🔒 Advanced visual enhancement features for improved user experience",
+                subLabel: "⚠️ Advanced visual enhancement features - Use with caution",
                 leading: React.createElement(FormRow.Icon, {
                     source: findByProps("getAssetByName")?.getAssetByName("ic_accessibility")?.id || findByProps("getAssetByName")?.getAssetByName("ic_person")?.id
                 }),
                 value: storage.ageBypass,
                 onValueChange: handleVisualA11yToggle
             }),
-            showAuthField ? React.createElement(
-                React.Fragment,
-                {},
-                React.createElement(FormInput, {
-                    title: "Authentication Required",
-                    placeholder: "Enter access code for advanced features",
-                    value: authInput,
-                    onChange: setAuthInput,
-                    secureTextEntry: true
-                }),
-                React.createElement(
-                    RN.View,
-                    { style: { flexDirection: "row", gap: 8, marginTop: 8, marginHorizontal: 16 } },
-                    React.createElement(
-                        RN.TouchableOpacity,
-                        {
-                            style: {
-                                backgroundColor: semanticColors.BUTTON_POSITIVE_BACKGROUND,
-                                padding: 12,
-                                borderRadius: 8,
-                                flex: 1,
-                                alignItems: "center"
-                            },
-                            onPress: submitAuthentication
-                        },
-                        React.createElement(
-                            RN.Text,
-                            { style: { color: "white", fontWeight: "bold" } },
-                            "Confirm"
-                        )
-                    ),
-                    React.createElement(
-                        RN.TouchableOpacity,
-                        {
-                            style: {
-                                backgroundColor: semanticColors.BUTTON_DANGER_BACKGROUND,
-                                padding: 12,
-                                borderRadius: 8,
-                                flex: 1,
-                                alignItems: "center"
-                            },
-                            onPress: cancelAuthentication
-                        },
-                        React.createElement(
-                            RN.Text,
-                            { style: { color: "white", fontWeight: "bold" } },
-                            "Cancel"
-                        )
-                    )
-                )
-            ) : null,
             React.createElement(FormSwitchRow, {
                 label: "Enable NSFW Content Bypass",
                 subLabel: "Bypasses all NSFW restrictions and gates completely",
@@ -165,6 +107,45 @@ export const Settings: React.FC<SettingsProps> = () => {
                     storage.showWarningPopup = value;
                 }
             })
+        ),
+        React.createElement(
+            FormSection,
+            { title: "Documentation" },
+            React.createElement(
+                RN.TouchableOpacity,
+                {
+                    style: {
+                        backgroundColor: semanticColors.BACKGROUND_SECONDARY,
+                        padding: 16,
+                        margin: 16,
+                        borderRadius: 8,
+                        alignItems: "center"
+                    },
+                    onPress: openDocsLink
+                },
+                React.createElement(
+                    RN.Text,
+                    {
+                        style: {
+                            color: semanticColors.TEXT_NORMAL,
+                            fontSize: 16,
+                            fontWeight: "500"
+                        }
+                    },
+                    "📖 Note"
+                ),
+                React.createElement(
+                    RN.Text,
+                    {
+                        style: {
+                            color: semanticColors.TEXT_MUTED,
+                            fontSize: 12,
+                            marginTop: 4
+                        }
+                    },
+                    "Read documentation and alternative bypass methods"
+                )
+            )
         )
     );
 };

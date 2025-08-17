@@ -22,7 +22,6 @@ import {
 const UserStore = findByStoreName("UserStore");
 const TokenManager = findByProps("getToken");
 
-
 if (!storage.accounts) storage.accounts = {};
 if (!storage.accountOrder) storage.accountOrder = [];
 if (!storage.settings) {
@@ -32,19 +31,22 @@ if (!storage.settings) {
     enableUnsafeFeatures: false
   };
 } else {
+  
   if (storage.settings.enableUnsafeFeatures === undefined) {
     storage.settings.enableUnsafeFeatures = false;
   }
   if (storage.settings.enableCLI === undefined) {
-    storage.settings.enableCLI = storage.settings.showAccountNames !== false; // Migrate from old setting
+    storage.settings.enableCLI = storage.settings.showAccountNames !== false; 
   }
   if (storage.settings.confirmBeforeDelete === undefined) {
     storage.settings.confirmBeforeDelete = true;
   }
+  
   if (storage.settings.showAccountNames !== undefined) {
     delete storage.settings.showAccountNames;
   }
 }
+
 
 addLog('info', 'AccountSwitcher plugin initialized', { 
   accountsCount: Object.keys(storage.accounts).length,
@@ -495,7 +497,7 @@ export default function AccountsManager(props) {
       React.createElement(ReactNative.Text, {
         key: "title",
         style: { color: 'white', fontSize: 20, fontWeight: 'bold' }
-      }, "MoreAlts"),
+      }, "Account Switcher"),
       React.createElement(ReactNative.TouchableOpacity, {
         key: "settings-btn",
         onPress: () => setShowSettings(true),

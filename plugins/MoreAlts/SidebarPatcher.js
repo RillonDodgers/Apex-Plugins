@@ -6,7 +6,7 @@ import { Forms } from "@vendetta/ui/components";
 import { findInReactTree } from "@vendetta/utils";
 import { findByProps } from "@vendetta/metro";
 import { logger } from "@vendetta";
-import AccountSwitcherSettings from "../Settings";
+import AccountSwitcherSettings from "./Settings";
 
 const { FormSection, FormRow } = Forms;
 const { TableRowIcon } = findByProps("TableRowIcon");

@@ -5,6 +5,7 @@ __ __
 This is daily checked by me (Win8.1VMUser) to ensure it works. And yes it works!
 Stay safe and for plugin ideas dm me on dc (same username as I typed above!).
 ### WARNING: This plugin has been OPTIMIZED for Vencore! Using it on Revenge above 292014 may cause BUGS or make it NOT WORKING! That's why we've flagged this plugin as warning in our repo (maybe cuz Vencore supports 294 version of discord where it got patched...). Anyways - 287-292 it works FINE!
+### NOT ANYONE... We've checked it on Revenge 292014, 287013 and Vencore 287013 and 292014 - doesn't work here too... Looks like it is IP-banned (like Cloudflare can IP ban specific sites). Like I said - we cannot do anything I guess. Please use any VPN and let's hope it'll get fixed sooner or later. Gate bypass works so I can say - it is... legal now. 
 __ __
 ### Guys... Thank you all for your support. 
 And VMuser, thanks for settings, it is pretty easy to manage settings with it.

@@ -1,6 +1,8 @@
 # BetterNSFWGateBypass 
 ## Allows you to access NSFW channels without setting your age.
 
+### The data got wiped. Say hi to the new reality of Vencore where not I own it... I will bring it back but after some days.
+
 __ __
 This is daily checked by me (Win8.1VMUser) to ensure it works. And yes it works!
 Stay safe and for plugin ideas dm me on dc (same username as I typed above!).

@@ -1,7 +1,7 @@
 # BetterNSFWGateBypass 
 ## Allows you to access NSFW channels without setting your age.
 
-### The data got wiped. Say hi to the new reality of Vencore where not I own it... I will bring it back but after some days.
+### NOTE: This plugin breaks Vencore ToS in one or more points ("We do not sell or distribute content or programs bypassing legal law in EU") therefore this plugin will be deleted in following weeks. The reason? Not Vencore's ToS (as we all know VMuser can change it sooner or later...) but the fact that UK mode is f...ed up! And now this plugin is um illegal. Well then I decided to take actions. Either add some privacy control or delete it from the repo.
 
 __ __
 This is daily checked by me (Win8.1VMUser) to ensure it works. And yes it works!

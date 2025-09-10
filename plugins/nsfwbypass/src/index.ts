@@ -17,9 +17,9 @@ let patches = [];
 function isNSFWChannel(channelId) {
     if (typeof channelId === "string") {
         const channel = getChannel(channelId);
-        return channel?.nsfw === true;
+        return channel?.nsfw === false;
     }
-    return channelId?.nsfw === true;
+    return channelId?.nsfw === false;
 }
 
 function NSFWWarningContent() {
@@ -45,7 +45,7 @@ const enhanceUserAccessibility = (userData) => {
 export default {
     onLoad: () => {
         storage.ageBypass ??= false;
-        storage.nsfwBypass ??= true;
+        storage.nsfwBypass ??= false;
         storage.showWarningPopup ??= true;
 
         if (storage.nsfwBypass) {
@@ -54,7 +54,7 @@ export default {
             patches.push(instead("shouldNSFWGateGuild", NSFWStuff, () => false));
             patches.push(after("getCurrentUser", UserStore, (_, user) => {
                 if (user?.hasOwnProperty("nsfwAllowed")) {
-                    user.nsfwAllowed = true;
+                    user.nsfwAllowed = false;
                 }
                 return user;
             }));

@@ -6,7 +6,7 @@ import { semanticColors } from "@vendetta/ui";
 import { showConfirmationAlert } from "@vendetta/ui/alerts";
 import { url } from "@vendetta/metro/common";
 
-const { FormSection, FormRow, FormSwitchRow, FormText } = findByProps("FormSection");
+const { FormSection, FormRow, FormSwitchRow, FormText, FormInput } = findByProps("FormSection");
 
 const WarningContent = () => {
     return React.createElement(
@@ -20,10 +20,33 @@ interface SettingsProps {}
 
 export const Settings: React.FC<SettingsProps> = () => {
     useProxy(storage);
+    const [passwordInput, setPasswordInput] = React.useState("");
+    const [showPasswordInput, setShowPasswordInput] = React.useState(false);
 
     storage.ageBypass ??= false;
     storage.nsfwBypass ??= true;
     storage.showWarningPopup ??= true;
+    storage.lockNSFWChannels ??= false;
+    storage.nsfwPassword ??= "";
+
+    const handleSetPassword = () => {
+        if (showPasswordInput) {
+            if (passwordInput.length > 0) {
+                storage.nsfwPassword = passwordInput;
+                setPasswordInput("");
+                setShowPasswordInput(false);
+                
+                console.log("NSFW password set successfully");
+            }
+        } else {
+            setShowPasswordInput(true);
+        }
+    };
+
+    const handleCancelPassword = () => {
+        setPasswordInput("");
+        setShowPasswordInput(false);
+    };
 
     const handleVisualA11yToggle = (enabled: boolean) => {
         if (enabled && !storage.ageBypass) {
@@ -35,11 +58,11 @@ export const Settings: React.FC<SettingsProps> = () => {
                 onConfirm: () => {
                     // Show second confirmation after first one
                     showConfirmationAlert({
-                        title: "✋ Hang on!",
+                        title: "Hang on!",
                         content: React.createElement(
                             RN.Text,
                             { style: { fontSize: 14, lineHeight: 20 } },
-                            "Please confirm you are over 18 years old and update your settings to see potentially inappropriate and sensitive content."
+                            "Please confirm you are over 18 years of age and update your settings to see potentially inappropriate and sensitive content."
                         ),
                         confirmText: "I'm 18+ and Accept",
                         cancelText: "Cancel",
@@ -106,7 +129,104 @@ export const Settings: React.FC<SettingsProps> = () => {
                 onValueChange: (value: boolean) => {
                     storage.showWarningPopup = value;
                 }
-            })
+            }),
+            React.createElement(FormSwitchRow, {
+                label: "🔒 Lock NSFW Channels",
+                subLabel: storage.nsfwPassword ? "Password protected NSFW channel access" : "Set a password to enable NSFW channel locking",
+                leading: React.createElement(FormRow.Icon, {
+                    source: findByProps("getAssetByName")?.getAssetByName("ic_lock")?.id
+                }),
+                value: storage.lockNSFWChannels,
+                onValueChange: (value: boolean) => {
+                    if (value && !storage.nsfwPassword) {
+                        
+                        setShowPasswordInput(true);
+                    } else {
+                        storage.lockNSFWChannels = value;
+                    }
+                }
+            }),
+        
+            React.createElement(
+                RN.View,
+                { style: { marginHorizontal: 16, marginVertical: 8 } },
+                React.createElement(
+                    RN.TouchableOpacity,
+                    {
+                        style: {
+                            backgroundColor: semanticColors.BUTTON_SECONDARY_BACKGROUND,
+                            padding: 12,
+                            borderRadius: 8,
+                            alignItems: "center",
+                            marginBottom: 8
+                        },
+                        onPress: handleSetPassword
+                    },
+                    React.createElement(
+                        RN.Text,
+                        {
+                            style: {
+                                color: "#FFFFFF",
+                                fontSize: 14,
+                                fontWeight: "500"
+                            }
+                        },
+                        storage.nsfwPassword ? "Change NSFW Password" : "Set NSFW Password"
+                    )
+                )
+            ),
+            
+            showPasswordInput ? React.createElement(
+                RN.View,
+                { style: { marginHorizontal: 16, marginBottom: 16 } },
+                React.createElement(FormInput, {
+                    title: "NSFW Password",
+                    placeholder: "Enter password for NSFW channels",
+                    value: passwordInput,
+                    onChange: setPasswordInput,
+                    secureTextEntry: true
+                }),
+                React.createElement(
+                    RN.View,
+                    { style: { flexDirection: "row", gap: 8, marginTop: 8 } },
+                    React.createElement(
+                        RN.TouchableOpacity,
+                        {
+                            style: {
+                                backgroundColor: semanticColors.BUTTON_POSITIVE_BACKGROUND,
+                                padding: 8,
+                                borderRadius: 6,
+                                flex: 1,
+                                alignItems: "center"
+                            },
+                            onPress: handleSetPassword
+                        },
+                        React.createElement(
+                            RN.Text,
+                            { style: { color: "#FFFFFF", fontSize: 12, fontWeight: "bold" } },
+                            "Set Password"
+                        )
+                    ),
+                    React.createElement(
+                        RN.TouchableOpacity,
+                        {
+                            style: {
+                                backgroundColor: semanticColors.BUTTON_DANGER_BACKGROUND,
+                                padding: 8,
+                                borderRadius: 6,
+                                flex: 1,
+                                alignItems: "center"
+                            },
+                            onPress: handleCancelPassword
+                        },
+                        React.createElement(
+                            RN.Text,
+                            { style: { color: "#FFFFFF", fontSize: 12, fontWeight: "bold" } },
+                            "Cancel"
+                        )
+                    )
+                )
+            ) : null
         ),
         React.createElement(
             FormSection,
@@ -127,7 +247,7 @@ export const Settings: React.FC<SettingsProps> = () => {
                     RN.Text,
                     {
                         style: {
-                            color: semanticColors.TEXT_NORMAL,
+                            color: "#FFFFFF",
                             fontSize: 16,
                             fontWeight: "500"
                         }
@@ -138,7 +258,7 @@ export const Settings: React.FC<SettingsProps> = () => {
                     RN.Text,
                     {
                         style: {
-                            color: semanticColors.TEXT_MUTED,
+                            color: "#FFFFFF",
                             fontSize: 12,
                             marginTop: 4
                         }

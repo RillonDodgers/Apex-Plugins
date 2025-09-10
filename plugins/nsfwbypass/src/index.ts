@@ -17,9 +17,9 @@ let patches = [];
 function isNSFWChannel(channelId) {
     if (typeof channelId === "string") {
         const channel = getChannel(channelId);
-        return channel?.nsfw === false;
+        return channel?.nsfw === true;
     }
-    return channelId?.nsfw === false;
+    return channelId?.nsfw === true;
 }
 
 function NSFWWarningContent() {

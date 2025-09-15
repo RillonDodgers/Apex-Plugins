@@ -2,12 +2,13 @@
 ## Allows you to access NSFW channels without setting your age.
 
 ### NOTE: This plugin breaks Vencore ToS in one or more points ("We do not sell or distribute content or programs bypassing legal law in EU") therefore this plugin will be deleted in following weeks. The reason? Not Vencore's ToS (as we all know VMuser can change it sooner or later...) but the fact that UK mode is f...ed up! And now this plugin is um illegal. Well then I decided to take actions. Either add some privacy control or delete it from the repo.
+__ __
 
 __ __
 This is daily checked by me (Win8.1VMUser) to ensure it works. And yes it works!
 Stay safe and for plugin ideas dm me on dc (same username as I typed above!).
-### WARNING: This plugin has been OPTIMIZED for Vencore! Using it on Revenge above 292014 may cause BUGS or make it NOT WORKING! That's why we've flagged this plugin as warning in our repo (maybe cuz Vencore supports 294 version of discord where it got patched...). Anyways - 287-292 it works FINE!
-### NOT ANYONE... We've checked it on Revenge 292014, 287013 and Vencore 287013 and 292014 - doesn't work here too... Looks like it is IP-banned (like Cloudflare can IP ban specific sites). Like I said - we cannot do anything I guess. Please use any VPN and let's hope it'll get fixed sooner or later. Gate bypass works so I can say - it is... legal now. 
+### WARNING: This plugin has been OPTIMIZED for Vencore! Using it on any versions below 290 may cause BUGS or make it NOT WORKING! That's why we've flagged this plugin as warning in our repo. Please use 290+ as stated [HERE](https://github.com/ApexTeamPL/Vencore/blob/main/docs/vencore-mobile/)
+### NOT ANYONE... We've checked it on Revenge 292014, 287013 and Vencore 287013 and 292014 - doesn't work here too... Looks like it is IP-banned (like Cloudflare can IP ban specific sites). Like I said - we cannot do anything I guess. Please use any VPN and let's hope it'll get fixed sooner or later. Gate bypass works so I can say - it is... legal now. ***VENCORE HAS A PROXY BUILT-IN, I'LL UPDATE THE PLUGIN TO USE THE PROXY ONCE DEVS RELEASE IT - CREATOR***
 __ __
 ### Guys... Thank you all for your support. 
 And VMuser, thanks for settings, it is pretty easy to manage settings with it.

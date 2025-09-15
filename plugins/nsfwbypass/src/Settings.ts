@@ -263,7 +263,7 @@ export const Settings: React.FC<SettingsProps> = () => {
                             marginTop: 4
                         }
                     },
-                    "Read documentation and alternative bypass methods"
+                    "Read documentation and alternative bypass methods. Please note this plugin was tested on 290+. We won't support any versions below 290 as stated in Vencore docs (click here to read more)."
                 )
             )
         )

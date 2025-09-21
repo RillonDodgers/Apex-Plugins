@@ -17,7 +17,7 @@ function schedule(channelId: string, content: string, at: number): string {
 
   timeoutIds[id] = setTimeout(() => {
     const realMessage = content;
-    MessageActions.sendMessage(channelId, { content: realMessage }, void 0, {nonce:""});
+    MessageActions.sendMessage(channelId, { content: realMessage }, void 0, {nonce:"az"});
     delete timeoutIds[id];
     delete messageQueue[id];
     showToast("Scheduled message sent.");

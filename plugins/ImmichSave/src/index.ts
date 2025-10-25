@@ -12,6 +12,7 @@ import { React } from "@vendetta/metro/common";
 import { Forms } from "@vendetta/ui/components";
 import { before } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
+// import { showActionSheet } from "@vendetta/ui"; // This might not be available
 
 let ChannelStore: any;
 let MessageStore: any;
@@ -141,6 +142,17 @@ const saveImagesFromMessage = (message: any): void => {
   });
 };
 
+const showImmichActionSheet = (message: any): void => {
+  try {
+    // For now, directly save images when long pressed
+    // This provides immediate feedback and avoids complex action sheet implementation
+    saveImagesFromMessage(message);
+  } catch (e) {
+    console.error("Error in Immich action:", e);
+    showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
+  }
+};
+
 const SettingsComponent = () => {
   const [apiKey, setApiKey] = React.useState(getApiKey());
   const [serverUrl, setServerUrl] = React.useState(getServerUrl());
@@ -193,18 +205,52 @@ export default {
   onLoad: () => {
     initModules();
     
-    // Add context menu patch for message long press
-    const contextMenuUnpatch = before("render", findByProps("ScrollView").View, (args) => {
+    // Approach 1: Patch message components directly for long press
+    const messageUnpatch = before("render", findByProps("MessageContent").MessageContent, (args) => {
       try {
-        // Find the message context menu
-        let messageMenu = findInReactTree(args, (r) => r.key === ".$MessageOverflow");
-        if (!messageMenu || !messageMenu.props || messageMenu.props.sheetKey !== "MessageOverflow") return;
+        const [props] = args;
         
-        const props = messageMenu.props.content.props;
-        if (!props.options || props.options.some((option: any) => option?.label === "Save to Immich")) return;
+        // Get the message from props
+        const message = props.message;
+        if (!message || !message.attachments || message.attachments.length === 0) return;
         
-        // Get the message from the context
-        const message = messageMenu.props.message;
+        // Check if message has image attachments
+        const hasImages = message.attachments.some((att: any) => 
+          att.content_type?.startsWith('image/') || 
+          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+        );
+        
+        if (!hasImages) return;
+        
+        // Add long press handler to the message content
+        const originalOnLongPress = props.onLongPress;
+        props.onLongPress = (event: any) => {
+          // Call original long press handler first
+          if (originalOnLongPress) {
+            originalOnLongPress(event);
+          }
+          
+          // Show our custom action sheet
+          showImmichActionSheet(message);
+        };
+        
+      } catch (e) {
+        console.error("Message content patch error:", e);
+      }
+    });
+    
+    patches.push(messageUnpatch);
+    
+    // Approach 2: Patch ActionSheet to add our option when message context menu is shown
+    const actionSheetUnpatch = before("render", findByProps("ActionSheet").ActionSheet, (args) => {
+      try {
+        const [props] = args;
+        
+        // Check if this is a message context menu
+        if (props.sheetKey !== "MessageOverflow") return;
+        
+        // Get the message from props or context
+        const message = props.message || props.content?.props?.message;
         if (!message || !message.attachments || message.attachments.length === 0) return;
         
         // Check if message has image attachments
@@ -216,24 +262,27 @@ export default {
         if (!hasImages) return;
         
         // Add the "Save to Immich" option
-        props.options.unshift({
-          label: "Save to Immich",
-          onPress: () => {
-            try {
-              saveImagesFromMessage(message);
-              props.hideActionSheet();
-            } catch (e) {
-              console.error("Error saving to Immich:", e);
-              showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
-            }
-          },
-        });
+        if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
+          props.options.unshift({
+            label: "Save to Immich",
+            icon: getAssetIDByName("ic_download"),
+            onPress: () => {
+              try {
+                saveImagesFromMessage(message);
+                props.hideActionSheet?.();
+              } catch (e) {
+                console.error("Error saving to Immich:", e);
+                showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
+              }
+            },
+          });
+        }
       } catch (e) {
-        console.error("Context menu patch error:", e);
+        console.error("ActionSheet patch error:", e);
       }
     });
     
-    patches.push(contextMenuUnpatch);
+    patches.push(actionSheetUnpatch);
   },
 
   onUnload: () => {

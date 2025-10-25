@@ -1,6 +1,7 @@
-import { findByStoreName, findByProps } from "@vendetta/metro";
 import { showToast } from "@vendetta/ui/toasts";
-import { getAssetIDByName } from "@vendetta/ui/assets";
+import { before } from '@vendetta/patcher';
+import { getAssetIDByName } from '@vendetta/ui/assets';
+import { findByProps } from "@vendetta/metro";
 import { 
   getApiKey,
   getServerUrl,
@@ -10,137 +11,12 @@ import {
 } from "./Settings";
 import { React } from "@vendetta/metro/common";
 import { Forms } from "@vendetta/ui/components";
-import { before } from "@vendetta/patcher";
-import { findInReactTree } from "@vendetta/utils";
-// import { showActionSheet } from "@vendetta/ui"; // This might not be available
 
-let ChannelStore: any;
-let MessageStore: any;
-let patches: any[] = [];
+const LazyActionSheet = findByProps("openLazy", "hideActionSheet");
+const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
+let unpatchActionSheet: any;
 
-const initModules = () => {
-  ChannelStore = findByStoreName("ChannelStore");
-  MessageStore = findByStoreName("MessageStore");
-};
-
-const uploadToImmich = (imageUrl: string, filename: string): Promise<boolean> => {
-  const apiKey = getApiKey();
-  const serverUrl = getServerUrl();
-  
-  if (!apiKey || !serverUrl) {
-    showToast("Immich not configured! Please set API key and server URL in settings.", getAssetIDByName("ic_close_16px"));
-    return Promise.resolve(false);
-  }
-
-  return fetch(imageUrl)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.status}`);
-      }
-      return response.blob();
-    })
-    .then(blob => {
-      const formData = new FormData();
-      
-      // Use the official Immich API format
-      formData.append('assetData', blob, filename);
-      formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-      formData.append('deviceId', 'vendetta-discord');
-      formData.append('fileCreatedAt', new Date().toISOString());
-      formData.append('fileModifiedAt', new Date().toISOString());
-      
-      // Upload to Immich using the official endpoint
-      return fetch(`${serverUrl}/api/asset/upload`, {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': apiKey,
-        },
-        body: formData
-      });
-    })
-    .then(uploadResponse => {
-      if (!uploadResponse.ok) {
-        return uploadResponse.text().then(errorText => {
-          throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
-        });
-      }
-      return true;
-    })
-    .catch(error => {
-      console.error('Immich upload error:', error);
-      showToast(`Upload failed: ${error.message}`, getAssetIDByName("ic_close_16px"));
-      return false;
-    });
-};
-
-
-const saveImagesFromMessage = (message: any): void => {
-  if (!isConfigured()) {
-    showToast("Please configure Immich settings first!", getAssetIDByName("ic_close_16px"));
-    return;
-  }
-
-  const attachments = message.attachments;
-  if (!attachments || attachments.length === 0) {
-    showToast("No images found in this message", getAssetIDByName("ic_close_16px"));
-    return;
-  }
-
-  const imageAttachments = attachments.filter((att: any) => 
-    att.content_type?.startsWith('image/') || 
-    /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-  );
-
-  if (imageAttachments.length === 0) {
-    showToast("No image attachments found", getAssetIDByName("ic_close_16px"));
-    return;
-  }
-
-  let successCount = 0;
-  let failCount = 0;
-  let completedCount = 0;
-
-  const processAttachment = (attachment: any) => {
-    return uploadToImmich(attachment.url, attachment.filename)
-      .then(success => {
-        if (success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-        completedCount++;
-        
-        // Check if all attachments have been processed
-        if (completedCount === imageAttachments.length) {
-          if (successCount > 0) {
-            showToast(`Successfully saved ${successCount} image(s) to Immich!`, getAssetIDByName("ic_check"));
-          }
-          if (failCount > 0) {
-            showToast(`Failed to save ${failCount} image(s)`, getAssetIDByName("ic_close_16px"));
-          }
-        }
-      })
-      .catch(error => {
-        failCount++;
-        completedCount++;
-        console.error("Error processing attachment:", error);
-        
-        if (completedCount === imageAttachments.length) {
-          if (successCount > 0) {
-            showToast(`Successfully saved ${successCount} image(s) to Immich!`, getAssetIDByName("ic_check"));
-          }
-          if (failCount > 0) {
-            showToast(`Failed to save ${failCount} image(s)`, getAssetIDByName("ic_close_16px"));
-          }
-        }
-      });
-  };
-
-  // Process all attachments
-  imageAttachments.forEach(attachment => {
-    processAttachment(attachment);
-  });
-};
+// TODO: Re-implement Immich upload functionality after identifying correct ActionSheet keys
 
 
 const SettingsComponent = () => {
@@ -192,95 +68,64 @@ const SettingsComponent = () => {
 };
 
 export default {
-  onLoad: () => {
-    initModules();
-    
-    // Patch MessageLongPressActionSheet for more reliable message context menu integration
-    try {
-      const MessageLongPressActionSheet = findByProps("MessageLongPressActionSheet")?.MessageLongPressActionSheet;
-      if (MessageLongPressActionSheet) {
-        console.log("Found MessageLongPressActionSheet component - patching for media links");
-        const messageLongPressUnpatch = before("render", MessageLongPressActionSheet, (args) => {
-          try {
-            const [props] = args;
-            
-            // Debug: Log MessageLongPressActionSheet renders to understand the structure
-            console.log("MessageLongPressActionSheet render:", {
-              hasMessage: !!props.message,
-              hasOptions: !!props.options,
-              optionsCount: props.options?.length || 0,
-              allProps: Object.keys(props)
-            });
-            
-            // Get the message from props
-            const message = props.message;
-            if (!message) {
-              console.log("No message found in MessageLongPressActionSheet");
-              return;
-            }
-            
-            // Check if message has attachments
-            if (!message.attachments || message.attachments.length === 0) {
-              console.log("No attachments found in message");
-              return;
-            }
-            
-            console.log("Message found with attachments:", message.attachments.length);
-            
-            // Check if message has image attachments
-            const hasImages = message.attachments.some((att: any) => 
-              att.content_type?.startsWith('image/') || 
-              /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-            );
-            
-            if (!hasImages) {
-              console.log("No image attachments found");
-              return;
-            }
-            
-            console.log("Found image attachments, adding Save to Immich option");
-            
-            // Add the "Save to Immich" option
-            if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
-              props.options.unshift({
-                label: "Save to Immich",
-                icon: getAssetIDByName("ic_download"),
-                onPress: () => {
-                  try {
-                    console.log("Save to Immich pressed!");
-                    saveImagesFromMessage(message);
-                    props.hideActionSheet?.();
-                  } catch (e) {
-                    console.error("Error saving to Immich:", e);
-                    showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
-                  }
-                },
+   onLoad: () => {
+        console.log("[ImmichSave] Plugin loaded!");
+        
+        if (ActionSheet) {
+          console.log("[ImmichSave] Found ActionSheet component, patching render method");
+          unpatchActionSheet = before("render", ActionSheet, (args) => {
+            try {
+              const [props] = args;
+              
+              // Log ActionSheet details for debugging
+              console.log("[ImmichSave] ActionSheet render:", {
+                sheetKey: props.sheetKey,
+                hasOptions: !!props.options,
+                optionsCount: props.options?.length || 0
               });
-              console.log("Added Save to Immich option to MessageLongPressActionSheet");
+              
+              // Only target MessageLongPressActionSheet
+              if (props.sheetKey !== "MessageLongPressActionSheet") {
+                console.log("[ImmichSave] Skipping ActionSheet:", props.sheetKey);
+                return;
+              }
+              
+              console.log("[ImmichSave] Processing message ActionSheet:", props.sheetKey);
+              
+              // Add our menu option
+              if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
+                console.log("[ImmichSave] Adding Save to Immich option");
+                
+                props.options.unshift({
+                  label: "Save to Immich",
+                  icon: getAssetIDByName("ic_download"),
+                  onPress: () => {
+                    try {
+                      console.log("[ImmichSave] Save to Immich pressed!");
+                      showToast("Save to Immich clicked! (functionality coming soon)", getAssetIDByName("ic_check"));
+                      props.hideActionSheet?.();
+                    } catch (e) {
+                      console.error("[ImmichSave] Error in Save to Immich handler:", e);
+                      showToast("Error occurred", getAssetIDByName("ic_close_16px"));
+                    }
+                  },
+                });
+                
+                console.log("[ImmichSave] Successfully added Save to Immich option");
+              }
+            } catch (e) {
+              console.error("[ImmichSave] ActionSheet patch error:", e);
             }
-          } catch (e) {
-            console.error("MessageLongPressActionSheet patch error:", e);
-          }
-        });
-        patches.push(messageLongPressUnpatch);
-      } else {
-        console.warn("Could not find MessageLongPressActionSheet component");
-      }
-    } catch (e) {
-      console.error("Error setting up MessageLongPressActionSheet patch:", e);
-    }
-  },
-
-  onUnload: () => {
-    patches.forEach(unpatch => {
-      try {
-        unpatch();
-      } catch (e) {
-        console.error("Error unpatching:", e);
-      }
-    });
-    patches = [];
-  },
-
-  settings: SettingsComponent
+          });
+        } else {
+          console.warn("[ImmichSave] Could not find ActionSheet component");
+        }
+   },
+   onUnload: () => {
+     if (unpatchActionSheet) {
+       unpatchActionSheet();
+     }
+   },
+   
+   settings: SettingsComponent
 };

@@ -111,9 +111,19 @@ export default {
               
               console.log("[ImmichSave] Found message with image attachments - proceeding");
               
+              // Debug the options structure
+              console.log("[ImmichSave] Options debug:", {
+                hasOptions: !!props.options,
+                optionsType: typeof props.options,
+                optionsLength: props.options?.length,
+                optionsIsArray: Array.isArray(props.options),
+                firstOption: props.options?.[0],
+                allOptions: props.options
+              });
+              
               // Add our menu option
-              if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
-                console.log("[ImmichSave] Adding Save to Immich option");
+              if (props.options && Array.isArray(props.options) && !props.options.some((option: any) => option?.label === "Save to Immich")) {
+                console.log("[ImmichSave] Adding Save to Immich option to options array");
                 
                 props.options.unshift({
                   label: "Save to Immich",
@@ -138,6 +148,12 @@ export default {
                 });
                 
                 console.log("[ImmichSave] Successfully added Save to Immich option");
+              } else {
+                console.log("[ImmichSave] Could not add option - options check failed:", {
+                  hasOptions: !!props.options,
+                  isArray: Array.isArray(props.options),
+                  alreadyExists: props.options?.some((option: any) => option?.label === "Save to Immich")
+                });
               }
             } catch (e) {
               console.error("[ImmichSave] ActionSheet patch error:", e);

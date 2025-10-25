@@ -32,3 +32,4 @@ Apex Plugins is free and open source plugin list created by Apex Team developers
 __ __
 
 ### BE AWARE OF FAKE ACCOUNTS DISTRIBUTING OUR AND OTHERS PLUGINS!!! PLEASE DOWNLOAD PLUGINS ONLY FROM OFFICAL REPOS (See [Vencore](https://raw.githubusercontent.com/ApexTeamPL/Plugins-List/refs/heads/main/offical-plugins.json) and [Purple-Eyez](https://plugins-list.pages.dev/) Plugin Browser)! THOSE ACCOUNTS HAVE BEEN FORKING OUR REPOS. FOR SECURITY REASONS WE WON'T WRITE WHO DID IT. YOU HAVE BEEN WARNED!
+

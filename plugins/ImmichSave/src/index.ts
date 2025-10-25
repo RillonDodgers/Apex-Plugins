@@ -26,13 +26,20 @@ const testImmichConnection = (): void => {
     return;
   }
 
+  // Try multiple connection tests
   console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/albums`);
   
+  // Test 1: Try with CORS headers
   fetch(`${serverUrl}/api/albums`, {
     method: 'GET',
     headers: {
       'X-API-KEY': apiKey,
-    }
+      'User-Agent': 'Discord-Mobile/1.0',
+      'Accept': 'application/json',
+      'Cache-Control': 'no-cache'
+    },
+    mode: 'cors',
+    credentials: 'omit'
   })
   .then(response => {
     console.log("[ImmichSave] Connection test response:", response.status, response.statusText);
@@ -44,8 +51,23 @@ const testImmichConnection = (): void => {
     }
   })
   .catch(error => {
-    console.error("[ImmichSave] Connection test error:", error);
-    showToast(`❌ Cannot reach Immich server`, getAssetIDByName("ic_close_16px"));
+    console.error("[ImmichSave] Primary connection test failed:", error);
+    
+    // Test 2: Try simpler request to base server
+    console.log("[ImmichSave] Trying simpler connection test to:", serverUrl);
+    
+    fetch(serverUrl, {
+      method: 'GET',
+      mode: 'no-cors'
+    })
+    .then(response => {
+      console.log("[ImmichSave] Simple test response:", response.type, response.status);
+      showToast("✅ Server reachable (no-cors mode)", getAssetIDByName("ic_check"));
+    })
+    .catch(error2 => {
+      console.error("[ImmichSave] All connection tests failed:", error2);
+      showToast(`❌ Cannot reach server: ${error.message}`, getAssetIDByName("ic_close_16px"));
+    });
   });
 };
 

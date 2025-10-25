@@ -195,49 +195,33 @@ export default {
   onLoad: () => {
     initModules();
     
-    // Focus on ActionSheet patching for media links - much more reliable approach
+    // Patch MessageLongPressActionSheet for more reliable message context menu integration
     try {
-      const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
-      if (ActionSheet) {
-        console.log("Found ActionSheet component - patching for media links");
-        const actionSheetUnpatch = before("render", ActionSheet, (args) => {
+      const MessageLongPressActionSheet = findByProps("MessageLongPressActionSheet")?.MessageLongPressActionSheet;
+      if (MessageLongPressActionSheet) {
+        console.log("Found MessageLongPressActionSheet component - patching for media links");
+        const messageLongPressUnpatch = before("render", MessageLongPressActionSheet, (args) => {
           try {
             const [props] = args;
             
-            // Debug: Log all ActionSheet renders to understand the structure
-            console.log("ActionSheet render:", {
-              sheetKey: props.sheetKey,
+            // Debug: Log MessageLongPressActionSheet renders to understand the structure
+            console.log("MessageLongPressActionSheet render:", {
               hasMessage: !!props.message,
-              hasContent: !!props.content,
               hasOptions: !!props.options,
               optionsCount: props.options?.length || 0,
               allProps: Object.keys(props)
             });
             
-            // Try to find message context menus - be more flexible with sheetKey matching
-            const validSheetKeys = ["MessageOverflow", "MessageActions", "MessageContextMenu", "MessageMenu"];
-            const isMessageContextMenu = validSheetKeys.includes(props.sheetKey) || 
-                                       props.sheetKey?.includes("Message") || 
-                                       props.sheetKey?.includes("Overflow");
-            
-            if (!isMessageContextMenu) {
-              console.log(`Skipping ActionSheet with sheetKey: ${props.sheetKey}`);
+            // Get the message from props
+            const message = props.message;
+            if (!message) {
+              console.log("No message found in MessageLongPressActionSheet");
               return;
             }
             
-            console.log(`Processing ActionSheet with sheetKey: ${props.sheetKey}`);
-            
-            // Get the message from props or context - try multiple possible locations
-            const message = props.message || props.content?.props?.message || props.data?.message;
-            console.log("Message search:", {
-              propsMessage: !!props.message,
-              contentMessage: !!props.content?.props?.message,
-              dataMessage: !!props.data?.message,
-              foundMessage: !!message
-            });
-            
-            if (!message || !message.attachments || message.attachments.length === 0) {
-              console.log("No message or attachments found");
+            // Check if message has attachments
+            if (!message.attachments || message.attachments.length === 0) {
+              console.log("No attachments found in message");
               return;
             }
             
@@ -272,18 +256,18 @@ export default {
                   }
                 },
               });
-              console.log("Added Save to Immich option to ActionSheet");
+              console.log("Added Save to Immich option to MessageLongPressActionSheet");
             }
           } catch (e) {
-            console.error("ActionSheet patch error:", e);
+            console.error("MessageLongPressActionSheet patch error:", e);
           }
         });
-        patches.push(actionSheetUnpatch);
+        patches.push(messageLongPressUnpatch);
       } else {
-        console.warn("Could not find ActionSheet component");
+        console.warn("Could not find MessageLongPressActionSheet component");
       }
     } catch (e) {
-      console.error("Error setting up ActionSheet patch:", e);
+      console.error("Error setting up MessageLongPressActionSheet patch:", e);
     }
   },
 

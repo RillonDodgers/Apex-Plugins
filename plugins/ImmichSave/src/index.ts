@@ -90,16 +90,26 @@ export default {
                 header: props.header
               });
               
-              // Since sheetKey is undefined, let's look for other ways to identify message ActionSheets
-              // Check if this ActionSheet has message-related data
-              const hasMessageData = props.message || props.content?.message || props.data?.message;
+              // Extract message from the header props (based on the log structure we saw)
+              const message = props.header?.props?.message;
               
-              if (!hasMessageData) {
-                console.log("[ImmichSave] Skipping ActionSheet - no message data found");
+              if (!message) {
+                console.log("[ImmichSave] Skipping ActionSheet - no message found in header.props");
                 return;
               }
               
-              console.log("[ImmichSave] Found ActionSheet with message data - proceeding");
+              // Check if message has image attachments
+              const hasImageAttachments = message.attachments?.some((att: any) => 
+                att.content_type?.startsWith('image/') || 
+                /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+              );
+              
+              if (!hasImageAttachments) {
+                console.log("[ImmichSave] Skipping - no image attachments found");
+                return;
+              }
+              
+              console.log("[ImmichSave] Found message with image attachments - proceeding");
               
               // Add our menu option
               if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
@@ -111,7 +121,14 @@ export default {
                   onPress: () => {
                     try {
                       console.log("[ImmichSave] Save to Immich pressed!");
-                      showToast("Save to Immich clicked! (functionality coming soon)", getAssetIDByName("ic_check"));
+                      console.log("[ImmichSave] Message attachments:", message.attachments);
+                      
+                      const imageAttachments = message.attachments.filter((att: any) => 
+                        att.content_type?.startsWith('image/') || 
+                        /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+                      );
+                      
+                      showToast(`Found ${imageAttachments.length} image(s) to save! (functionality coming soon)`, getAssetIDByName("ic_check"));
                       props.hideActionSheet?.();
                     } catch (e) {
                       console.error("[ImmichSave] Error in Save to Immich handler:", e);

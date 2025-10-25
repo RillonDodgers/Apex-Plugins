@@ -22,56 +22,58 @@ const initModules = () => {
   MessageStore = findByStoreName("MessageStore");
 };
 
-const uploadToImmich = async (imageUrl: string, filename: string): Promise<boolean> => {
+const uploadToImmich = (imageUrl: string, filename: string): Promise<boolean> => {
   const apiKey = getApiKey();
   const serverUrl = getServerUrl();
   
   if (!apiKey || !serverUrl) {
     showToast("Immich not configured! Please set API key and server URL in settings.", getAssetIDByName("ic_close_16px"));
-    return false;
+    return Promise.resolve(false);
   }
 
-  try {
-    // First, download the image
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.status}`);
-    }
-    
-    const blob = await response.blob();
-    const formData = new FormData();
-    
-    // Use the official Immich API format
-    formData.append('assetData', blob, filename);
-    formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-    formData.append('deviceId', 'vendetta-discord');
-    formData.append('fileCreatedAt', new Date().toISOString());
-    formData.append('fileModifiedAt', new Date().toISOString());
-    
-    // Upload to Immich using the official endpoint
-    const uploadResponse = await fetch(`${serverUrl}/api/asset/upload`, {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': apiKey,
-      },
-      body: formData
+  return fetch(imageUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.status}`);
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const formData = new FormData();
+      
+      // Use the official Immich API format
+      formData.append('assetData', blob, filename);
+      formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+      formData.append('deviceId', 'vendetta-discord');
+      formData.append('fileCreatedAt', new Date().toISOString());
+      formData.append('fileModifiedAt', new Date().toISOString());
+      
+      // Upload to Immich using the official endpoint
+      return fetch(`${serverUrl}/api/asset/upload`, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': apiKey,
+        },
+        body: formData
+      });
+    })
+    .then(uploadResponse => {
+      if (!uploadResponse.ok) {
+        return uploadResponse.text().then(errorText => {
+          throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
+        });
+      }
+      return true;
+    })
+    .catch(error => {
+      console.error('Immich upload error:', error);
+      showToast(`Upload failed: ${error.message}`, getAssetIDByName("ic_close_16px"));
+      return false;
     });
-    
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Immich upload error:', error);
-    showToast(`Upload failed: ${error.message}`, getAssetIDByName("ic_close_16px"));
-    return false;
-  }
 };
 
 
-const saveImagesFromMessage = async (message: any): Promise<void> => {
+const saveImagesFromMessage = (message: any): void => {
   if (!isConfigured()) {
     showToast("Please configure Immich settings first!", getAssetIDByName("ic_close_16px"));
     return;
@@ -95,22 +97,48 @@ const saveImagesFromMessage = async (message: any): Promise<void> => {
 
   let successCount = 0;
   let failCount = 0;
+  let completedCount = 0;
 
-  for (const attachment of imageAttachments) {
-    const success = await uploadToImmich(attachment.url, attachment.filename);
-    if (success) {
-      successCount++;
-    } else {
-      failCount++;
-    }
-  }
+  const processAttachment = (attachment: any) => {
+    return uploadToImmich(attachment.url, attachment.filename)
+      .then(success => {
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+        completedCount++;
+        
+        // Check if all attachments have been processed
+        if (completedCount === imageAttachments.length) {
+          if (successCount > 0) {
+            showToast(`Successfully saved ${successCount} image(s) to Immich!`, getAssetIDByName("ic_check"));
+          }
+          if (failCount > 0) {
+            showToast(`Failed to save ${failCount} image(s)`, getAssetIDByName("ic_close_16px"));
+          }
+        }
+      })
+      .catch(error => {
+        failCount++;
+        completedCount++;
+        console.error("Error processing attachment:", error);
+        
+        if (completedCount === imageAttachments.length) {
+          if (successCount > 0) {
+            showToast(`Successfully saved ${successCount} image(s) to Immich!`, getAssetIDByName("ic_check"));
+          }
+          if (failCount > 0) {
+            showToast(`Failed to save ${failCount} image(s)`, getAssetIDByName("ic_close_16px"));
+          }
+        }
+      });
+  };
 
-  if (successCount > 0) {
-    showToast(`Successfully saved ${successCount} image(s) to Immich!`, getAssetIDByName("ic_check"));
-  }
-  if (failCount > 0) {
-    showToast(`Failed to save ${failCount} image(s)`, getAssetIDByName("ic_close_16px"));
-  }
+  // Process all attachments
+  imageAttachments.forEach(attachment => {
+    processAttachment(attachment);
+  });
 };
 
 const SettingsComponent = () => {

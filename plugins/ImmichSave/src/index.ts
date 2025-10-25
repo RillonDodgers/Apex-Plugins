@@ -210,14 +210,32 @@ export default {
               hasMessage: !!props.message,
               hasContent: !!props.content,
               hasOptions: !!props.options,
-              optionsCount: props.options?.length || 0
+              optionsCount: props.options?.length || 0,
+              allProps: Object.keys(props)
             });
             
-            // Check if this is a message context menu
-            if (props.sheetKey !== "MessageOverflow") return;
+            // Try to find message context menus - be more flexible with sheetKey matching
+            const validSheetKeys = ["MessageOverflow", "MessageActions", "MessageContextMenu", "MessageMenu"];
+            const isMessageContextMenu = validSheetKeys.includes(props.sheetKey) || 
+                                       props.sheetKey?.includes("Message") || 
+                                       props.sheetKey?.includes("Overflow");
             
-            // Get the message from props or context
-            const message = props.message || props.content?.props?.message;
+            if (!isMessageContextMenu) {
+              console.log(`Skipping ActionSheet with sheetKey: ${props.sheetKey}`);
+              return;
+            }
+            
+            console.log(`Processing ActionSheet with sheetKey: ${props.sheetKey}`);
+            
+            // Get the message from props or context - try multiple possible locations
+            const message = props.message || props.content?.props?.message || props.data?.message;
+            console.log("Message search:", {
+              propsMessage: !!props.message,
+              contentMessage: !!props.content?.props?.message,
+              dataMessage: !!props.data?.message,
+              foundMessage: !!message
+            });
+            
             if (!message || !message.attachments || message.attachments.length === 0) {
               console.log("No message or attachments found");
               return;

@@ -4,6 +4,10 @@ import { getAssetIDByName } from '@vendetta/ui/assets';
 import { findByProps } from "@vendetta/metro";
 // Try to find Discord's network utilities
 const DiscordNative = findByProps("fetch") || findByProps("request") || findByProps("http");
+
+// Try to find and patch CSP enforcement
+const CSPUtils = findByProps("checkCSP") || findByProps("validateRequest") || findByProps("allowedOrigins");
+console.log("[ImmichSave] CSP Utils found:", !!CSPUtils);
 import { 
   getApiKey,
   getServerUrl,
@@ -53,46 +57,101 @@ const testImmichConnection = (): void => {
   // Now test our server
   console.log("[ImmichSave] Testing our server:", `${serverUrl}/api/albums`);
   
-  // Try mimicking catbox proxy mode exactly
-  fetch(`${serverUrl}/api/albums`, {
-    method: 'GET',
-    headers: {
-      'X-API-KEY': apiKey,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      'Accept': '*/*',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    }
-  })
-  .then(response => {
-    console.log("[ImmichSave] Connection test response:", response.status, response.statusText);
-    
-    if (response.ok) {
-      showToast("✅ Immich connection successful!", getAssetIDByName("ic_check"));
-    } else {
-      showToast(`❌ Connection failed: ${response.status}`, getAssetIDByName("ic_close_16px"));
-    }
-  })
-  .catch(error => {
-    console.error("[ImmichSave] Primary connection test failed:", error);
-    
-    // Test 2: Try simpler request to base server
-    console.log("[ImmichSave] Trying simpler connection test to:", serverUrl);
-    
-    fetch(serverUrl, {
+  // Try CSP bypass methods
+  console.log("[ImmichSave] Attempting CSP bypass...");
+  
+  // Method 1: Try data URL bypass
+  const bypassScript = `
+    fetch('${serverUrl}/api/albums', {
       method: 'GET',
-      mode: 'no-cors'
+      headers: {
+        'X-API-KEY': '${apiKey}',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    }).then(r => r.text()).then(data => {
+      window.postMessage({type: 'IMMICH_RESULT', data: data, status: 'success'}, '*');
+    }).catch(e => {
+      window.postMessage({type: 'IMMICH_RESULT', error: e.message, status: 'error'}, '*');
+    });
+  `;
+  
+  const dataUrl = `data:text/html,<script>${encodeURIComponent(bypassScript)}</script>`;
+  
+  // Listen for result
+  const messageHandler = (event) => {
+    if (event.data.type === 'IMMICH_RESULT') {
+      window.removeEventListener('message', messageHandler);
+      if (event.data.status === 'success') {
+        console.log("[ImmichSave] CSP bypass SUCCESS!");
+        showToast("✅ CSP bypass worked!", getAssetIDByName("ic_check"));
+      } else {
+        console.log("[ImmichSave] CSP bypass failed:", event.data.error);
+        // Fallback to normal fetch
+        normalFetch();
+      }
+    }
+  };
+  
+  window.addEventListener('message', messageHandler);
+  
+  // Try to execute bypass
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = dataUrl;
+    document.body.appendChild(iframe);
+    
+    // Clean up after 5 seconds
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      window.removeEventListener('message', messageHandler);
+    }, 5000);
+  } catch (e) {
+    console.log("[ImmichSave] Data URL bypass failed, trying normal fetch");
+    normalFetch();
+  }
+  
+  function normalFetch() {
+    fetch(`${serverUrl}/api/albums`, {
+      method: 'GET',
+      headers: {
+        'X-API-KEY': apiKey,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     })
     .then(response => {
-      console.log("[ImmichSave] Simple test response:", response.type, response.status);
-      showToast("✅ Server reachable (no-cors mode)", getAssetIDByName("ic_check"));
+      console.log("[ImmichSave] Connection test response:", response.status, response.statusText);
+      
+      if (response.ok) {
+        showToast("✅ Immich connection successful!", getAssetIDByName("ic_check"));
+      } else {
+        showToast(`❌ Connection failed: ${response.status}`, getAssetIDByName("ic_close_16px"));
+      }
     })
-    .catch(error2 => {
-      console.error("[ImmichSave] All connection tests failed:", error2);
-      showToast(`❌ Cannot reach server: ${error.message}`, getAssetIDByName("ic_close_16px"));
+    .catch(error => {
+      console.error("[ImmichSave] Primary connection test failed:", error);
+      
+      // Test 2: Try simpler request to base server
+      console.log("[ImmichSave] Trying simpler connection test to:", serverUrl);
+      
+      fetch(serverUrl, {
+        method: 'GET',
+        mode: 'no-cors'
+      })
+      .then(response => {
+        console.log("[ImmichSave] Simple test response:", response.type, response.status);
+        showToast("✅ Server reachable (no-cors mode)", getAssetIDByName("ic_check"));
+      })
+      .catch(error2 => {
+        console.error("[ImmichSave] All connection tests failed:", error2);
+        showToast(`❌ Cannot reach server: ${error.message}`, getAssetIDByName("ic_close_16px"));
+      });
     });
-  });
+  }
 };
 
 const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {

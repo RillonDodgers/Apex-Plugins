@@ -53,12 +53,16 @@ const testImmichConnection = (): void => {
   // Now test our server
   console.log("[ImmichSave] Testing our server:", `${serverUrl}/api/albums`);
   
+  // Try mimicking catbox proxy mode exactly
   fetch(`${serverUrl}/api/albums`, {
     method: 'GET',
     headers: {
       'X-API-KEY': apiKey,
-      'User-Agent': 'Discord-Mobile/1.0',
-      'Accept': 'application/json'
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Accept': '*/*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     }
   })
   .then(response => {

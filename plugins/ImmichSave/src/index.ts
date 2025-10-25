@@ -26,41 +26,57 @@ const testImmichConnection = (): void => {
     return;
   }
 
-  console.log("[ImmichSave] Testing connection with XMLHttpRequest to:", `${serverUrl}/api/albums`);
+  // First test: Try fetch like MoreAlts does for Discord API
+  console.log("[ImmichSave] Testing with fetch (like MoreAlts) to:", `${serverUrl}/api/albums`);
   
-  // Try XMLHttpRequest instead of fetch
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', `${serverUrl}/api/albums`, true);
-  xhr.setRequestHeader('X-API-KEY', apiKey);
-  xhr.setRequestHeader('Accept', 'application/json');
-  
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4) {
-      console.log("[ImmichSave] XHR Response:", xhr.status, xhr.statusText);
-      
-      if (xhr.status === 200 || xhr.status === 401) {
-        // 401 is expected without proper auth, but means server is reachable
-        showToast("✅ Immich connection successful!", getAssetIDByName("ic_check"));
-      } else if (xhr.status === 0) {
-        showToast("❌ Network blocked by Discord", getAssetIDByName("ic_close_16px"));
-      } else {
-        showToast(`❌ Connection failed: ${xhr.status}`, getAssetIDByName("ic_close_16px"));
-      }
+  fetch(`${serverUrl}/api/albums`, {
+    method: 'GET',
+    headers: {
+      'X-API-KEY': apiKey,
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
-  };
-  
-  xhr.onerror = function() {
-    console.error("[ImmichSave] XHR Error occurred");
-    showToast("❌ Network request blocked", getAssetIDByName("ic_close_16px"));
-  };
-  
-  xhr.ontimeout = function() {
-    console.error("[ImmichSave] XHR Timeout");
-    showToast("❌ Connection timeout", getAssetIDByName("ic_close_16px"));
-  };
-  
-  xhr.timeout = 10000; // 10 second timeout
-  xhr.send();
+  })
+  .then(response => {
+    console.log("[ImmichSave] Fetch Response:", response.status, response.statusText);
+    
+    if (response.status === 200 || response.status === 401) {
+      showToast("✅ Fetch works! Connection successful!", getAssetIDByName("ic_check"));
+    } else {
+      showToast(`❌ Fetch failed: ${response.status}`, getAssetIDByName("ic_close_16px"));
+    }
+  })
+  .catch(error => {
+    console.error("[ImmichSave] Fetch failed, trying XHR:", error);
+    
+    // Fallback to XHR if fetch fails
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `${serverUrl}/api/albums`, true);
+    xhr.setRequestHeader('X-API-KEY', apiKey);
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        console.log("[ImmichSave] XHR Response:", xhr.status, xhr.statusText);
+        
+        if (xhr.status === 200 || xhr.status === 401) {
+          showToast("✅ XHR works! Connection successful!", getAssetIDByName("ic_check"));
+        } else if (xhr.status === 0) {
+          showToast("❌ All requests blocked by Discord", getAssetIDByName("ic_close_16px"));
+        } else {
+          showToast(`❌ Connection failed: ${xhr.status}`, getAssetIDByName("ic_close_16px"));
+        }
+      }
+    };
+    
+    xhr.onerror = function() {
+      console.error("[ImmichSave] XHR also failed");
+      showToast("❌ All network requests blocked", getAssetIDByName("ic_close_16px"));
+    };
+    
+    xhr.timeout = 10000;
+    xhr.send();
+  });
 };
 
 const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {
@@ -101,43 +117,57 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       console.log("[ImmichSave] FormData prepared with keys:", ['assetData', 'deviceAssetId', 'deviceId', 'fileCreatedAt', 'fileModifiedAt', 'filename', 'metadata']);
       console.log("[ImmichSave] Blob size:", blob.size, "bytes");
       
-      // Try XMLHttpRequest instead of fetch for upload
-      return new Promise<any>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${serverUrl}/api/asset/upload`, true);
-        xhr.setRequestHeader('X-API-KEY', apiKey);
-        // Don't set Content-Type - let XMLHttpRequest handle it for FormData
+      // Try fetch first (like MoreAlts does), then fallback to XHR
+      return fetch(`${serverUrl}/api/asset/upload`, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': apiKey,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          // Don't set Content-Type - let browser handle it for FormData
+        },
+        body: formData
+      })
+      .catch(error => {
+        console.error("[ImmichSave] Fetch upload failed, trying XHR:", error);
         
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            console.log("[ImmichSave] Upload XHR Response:", xhr.status, xhr.statusText);
-            
-            const response = {
-              ok: xhr.status >= 200 && xhr.status < 300,
-              status: xhr.status,
-              text: () => Promise.resolve(xhr.responseText)
-            };
-            
-            if (response.ok) {
-              console.log("[ImmichSave] Upload successful via XHR");
+        // Fallback to XMLHttpRequest if fetch fails
+        return new Promise<any>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `${serverUrl}/api/asset/upload`, true);
+          xhr.setRequestHeader('X-API-KEY', apiKey);
+          // Don't set Content-Type - let XMLHttpRequest handle it for FormData
+          
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              console.log("[ImmichSave] Upload XHR Response:", xhr.status, xhr.statusText);
+              
+              const response = {
+                ok: xhr.status >= 200 && xhr.status < 300,
+                status: xhr.status,
+                text: () => Promise.resolve(xhr.responseText)
+              };
+              
+              if (response.ok) {
+                console.log("[ImmichSave] Upload successful via XHR");
+              }
+              
+              resolve(response);
             }
-            
-            resolve(response);
-          }
-        };
-        
-        xhr.onerror = function() {
-          console.error("[ImmichSave] Upload XHR Error");
-          reject(new Error('Network request failed'));
-        };
-        
-        xhr.ontimeout = function() {
-          console.error("[ImmichSave] Upload XHR Timeout");
-          reject(new Error('Request timeout'));
-        };
-        
-        xhr.timeout = 30000; // 30 second timeout for uploads
-        xhr.send(formData);
+          };
+          
+          xhr.onerror = function() {
+            console.error("[ImmichSave] Upload XHR Error");
+            reject(new Error('Network request failed'));
+          };
+          
+          xhr.ontimeout = function() {
+            console.error("[ImmichSave] Upload XHR Timeout");
+            reject(new Error('Request timeout'));
+          };
+          
+          xhr.timeout = 30000; // 30 second timeout for uploads
+          xhr.send(formData);
+        });
       });
     })
     .then(uploadResponse => {

@@ -111,24 +111,23 @@ export default {
               
               console.log("[ImmichSave] Found message with image attachments - proceeding");
               
-              // Debug the options structure
-              console.log("[ImmichSave] Options debug:", {
-                hasOptions: !!props.options,
-                optionsType: typeof props.options,
-                optionsLength: props.options?.length,
-                optionsIsArray: Array.isArray(props.options),
-                firstOption: props.options?.[0],
-                allOptions: props.options
+              // Debug the children structure since options is undefined
+              console.log("[ImmichSave] Children debug:", {
+                hasChildren: !!props.children,
+                childrenType: typeof props.children,
+                childrenIsArray: Array.isArray(props.children),
+                childrenLength: props.children?.length,
+                children: props.children
               });
               
-              // Add our menu option
-              if (props.options && Array.isArray(props.options) && !props.options.some((option: any) => option?.label === "Save to Immich")) {
-                console.log("[ImmichSave] Adding Save to Immich option to options array");
+              // Try to modify children instead of options
+              if (props.children && Array.isArray(props.children)) {
+                console.log("[ImmichSave] Attempting to add option to children array");
                 
-                props.options.unshift({
-                  label: "Save to Immich",
-                  icon: getAssetIDByName("ic_download"),
-                  onPress: () => {
+                // Create our menu option component
+                const saveToImmichOption = React.createElement("div", {
+                  key: "save-to-immich",
+                  onClick: () => {
                     try {
                       console.log("[ImmichSave] Save to Immich pressed!");
                       console.log("[ImmichSave] Message attachments:", message.attachments);
@@ -139,20 +138,21 @@ export default {
                       );
                       
                       showToast(`Found ${imageAttachments.length} image(s) to save! (functionality coming soon)`, getAssetIDByName("ic_check"));
-                      props.hideActionSheet?.();
                     } catch (e) {
                       console.error("[ImmichSave] Error in Save to Immich handler:", e);
                       showToast("Error occurred", getAssetIDByName("ic_close_16px"));
                     }
-                  },
-                });
+                  }
+                }, "Save to Immich");
                 
-                console.log("[ImmichSave] Successfully added Save to Immich option");
+                // Add to beginning of children array
+                props.children.unshift(saveToImmichOption);
+                console.log("[ImmichSave] Successfully added Save to Immich to children");
               } else {
-                console.log("[ImmichSave] Could not add option - options check failed:", {
-                  hasOptions: !!props.options,
-                  isArray: Array.isArray(props.options),
-                  alreadyExists: props.options?.some((option: any) => option?.label === "Save to Immich")
+                console.log("[ImmichSave] Could not add option - children is not an array:", {
+                  hasChildren: !!props.children,
+                  childrenType: typeof props.children,
+                  isArray: Array.isArray(props.children)
                 });
               }
             } catch (e) {

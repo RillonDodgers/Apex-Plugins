@@ -17,7 +17,143 @@ const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
 const ActionSheetRow = findByProps("ActionSheetRow")?.ActionSheetRow;
 let unpatchActionSheet: any;
 
-// TODO: Re-implement Immich upload functionality after identifying correct ActionSheet keys
+const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {
+  const apiKey = getApiKey();
+  const serverUrl = getServerUrl();
+  
+  if (!apiKey || !serverUrl) {
+    showToast("Immich not configured! Please set API key and server URL in settings.", getAssetIDByName("ic_close_16px"));
+    return Promise.resolve(false);
+  }
+
+  console.log("[ImmichSave] Downloading file:", fileUrl);
+  
+  return fetch(fileUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.status}`);
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      console.log("[ImmichSave] Downloaded blob size:", blob.size);
+      
+      // Prepare form data for Immich API
+      const formData = new FormData();
+      formData.append('assetData', blob, filename);
+      formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+      formData.append('deviceId', 'vendetta-discord');
+      formData.append('fileCreatedAt', new Date().toISOString());
+      formData.append('fileModifiedAt', new Date().toISOString());
+      
+      // Upload to Immich
+      console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
+      return fetch(`${serverUrl}/api/asset/upload`, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': apiKey,
+        },
+        body: formData
+      });
+    })
+    .then(uploadResponse => {
+      if (!uploadResponse.ok) {
+        return uploadResponse.text().then(errorText => {
+          throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
+        });
+      }
+      console.log("[ImmichSave] Upload successful");
+      return true;
+    })
+    .catch(error => {
+      console.error('[ImmichSave] Upload error:', error);
+      showToast(`Upload failed: ${error.message}`, getAssetIDByName("ic_close_16px"));
+      return false;
+    });
+};
+
+const saveMediaFromMessage = (message: any): void => {
+  if (!isConfigured()) {
+    showToast("Please configure Immich settings first!", getAssetIDByName("ic_close_16px"));
+    return;
+  }
+
+  const attachments = message.attachments;
+  if (!attachments || attachments.length === 0) {
+    showToast("No media found in this message", getAssetIDByName("ic_close_16px"));
+    return;
+  }
+
+  // Filter for images and videos
+  const mediaAttachments = attachments.filter((att: any) => {
+    const isImage = att.content_type?.startsWith('image/') || 
+                   /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(att.filename);
+    const isVideo = att.content_type?.startsWith('video/') || 
+                   /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(att.filename);
+    return isImage || isVideo;
+  });
+
+  if (mediaAttachments.length === 0) {
+    showToast("No image or video attachments found", getAssetIDByName("ic_close_16px"));
+    return;
+  }
+
+  console.log("[ImmichSave] Found media attachments:", mediaAttachments.length);
+  showToast(`Uploading ${mediaAttachments.length} file(s) to Immich...`, getAssetIDByName("ic_upload"));
+
+  let successCount = 0;
+  let failCount = 0;
+  let completedCount = 0;
+
+  const processAttachment = (attachment: any) => {
+    return uploadToImmich(attachment.url, attachment.filename)
+      .then(success => {
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+        completedCount++;
+        
+        // Show progress for multiple files
+        if (mediaAttachments.length > 1) {
+          showToast(`Progress: ${completedCount}/${mediaAttachments.length} files processed`, getAssetIDByName("ic_check"));
+        }
+        
+        // Check if all attachments have been processed
+        if (completedCount === mediaAttachments.length) {
+          // Show final result
+          if (successCount > 0) {
+            showToast(`Successfully saved ${successCount} file(s) to Immich!`, getAssetIDByName("ic_check"));
+          }
+          if (failCount > 0) {
+            showToast(`Failed to save ${failCount} file(s)`, getAssetIDByName("ic_close_16px"));
+          }
+        }
+      })
+      .catch(error => {
+        console.error("[ImmichSave] Error processing attachment:", error);
+        failCount++;
+        completedCount++;
+        
+        // Check if all attachments have been processed
+        if (completedCount === mediaAttachments.length) {
+          // Show final result
+          if (successCount > 0) {
+            showToast(`Successfully saved ${successCount} file(s) to Immich!`, getAssetIDByName("ic_check"));
+          }
+          if (failCount > 0) {
+            showToast(`Failed to save ${failCount} file(s)`, getAssetIDByName("ic_close_16px"));
+          }
+        }
+      });
+  };
+
+  // Process all attachments
+  mediaAttachments.forEach(attachment => {
+    processAttachment(attachment);
+  });
+};
 
 
 const SettingsComponent = () => {
@@ -99,18 +235,21 @@ export default {
                 return;
               }
               
-              // Check if message has image attachments
-              const hasImageAttachments = message.attachments?.some((att: any) => 
-                att.content_type?.startsWith('image/') || 
-                /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-              );
+              // Check if message has image or video attachments
+              const hasMediaAttachments = message.attachments?.some((att: any) => {
+                const isImage = att.content_type?.startsWith('image/') || 
+                               /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(att.filename);
+                const isVideo = att.content_type?.startsWith('video/') || 
+                               /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(att.filename);
+                return isImage || isVideo;
+              });
               
-              if (!hasImageAttachments) {
-                console.log("[ImmichSave] Skipping - no image attachments found");
+              if (!hasMediaAttachments) {
+                console.log("[ImmichSave] Skipping - no image or video attachments found");
                 return;
               }
               
-              console.log("[ImmichSave] Found message with image attachments - proceeding");
+              console.log("[ImmichSave] Found message with media attachments - proceeding");
               
               // Debug the children structure since options is undefined
               console.log("[ImmichSave] Children debug:", {
@@ -139,14 +278,7 @@ export default {
                     onPress: () => {
                       try {
                         console.log("[ImmichSave] Save to Immich pressed!");
-                        console.log("[ImmichSave] Message attachments:", message.attachments);
-                        
-                        const imageAttachments = message.attachments.filter((att: any) => 
-                          att.content_type?.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-                        );
-                        
-                        showToast(`Found ${imageAttachments.length} image(s) to save! (functionality coming soon)`, getAssetIDByName("ic_check"));
+                        saveMediaFromMessage(message);
                       } catch (e) {
                         console.error("[ImmichSave] Error in Save to Immich handler:", e);
                         showToast("Error occurred", getAssetIDByName("ic_close_16px"));

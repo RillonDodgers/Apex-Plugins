@@ -7,7 +7,7 @@ __ __
 __ __
 This is daily checked by me (Win8.1VMUser) to ensure it works. And yes it works!
 Stay safe and for plugin ideas dm me on dc (same username as I typed above!).
-### WARNING: This plugin has been OPTIMIZED for Vencore! Using it on any versions below 290 may cause BUGS or make it NOT WORKING! That's why we've flagged this plugin as warning in our repo. Please use 290+ as stated [HERE](https://github.com/ApexTeamPL/Vencore/blob/main/docs/vencore-mobile/)
+### WARNING: This plugin has been OPTIMIZED for Vencore! Using it on any versions below 290 may cause BUGS or make it NOT WORKING! That's why we've flagged this plugin as warning in our repo. Please use 290+ as stated [HERE](https://github.com/RillonDodgers/Vencore/blob/main/docs/vencore-mobile/)
 ### NOT ANYONE... We've checked it on Revenge 292014, 287013 and Vencore 287013 and 292014 - doesn't work here too... Looks like it is IP-banned (like Cloudflare can IP ban specific sites). Like I said - we cannot do anything I guess. Please use any VPN and let's hope it'll get fixed sooner or later. Gate bypass works so I can say - it is... legal now. ***VENCORE HAS A PROXY BUILT-IN, I'LL UPDATE THE PLUGIN TO USE THE PROXY ONCE DEVS RELEASE IT - CREATOR***
 __ __
 ### Guys... Thank you all for your support. 

@@ -8,7 +8,6 @@ Images:
 <img width="1220" height="355" alt="Screenshot_20250725-094021 Discord" src="https://github.com/user-attachments/assets/8ccff92a-78ff-429d-91cf-7626990666fc" />
 
 
-🔗 [**Install**](https://apexteampl.github.io/Apex-Plugins/ReadAll)
-👷‍♂️ [**Source code**](https://github.com/ApexTeamPL/Apex-Plugins/tree/master/plugins/ReadAll)
-🪰 [**Bugs**](https://github.com/ApexTeamPL/Apex-Plugins/issues/new?title=[ReadAl
-l])
+🔗 [**Install**](https://rillonDodgers.github.io/Apex-Plugins/ReadAll)
+👷‍♂️ [**Source code**](https://github.com/RillonDodgers/Apex-Plugins/tree/master/plugins/ReadAll)
+🪰 [**Bugs**](https://github.com/RillonDodgers/Apex-Plugins/issues/new?title=[ReadAll])

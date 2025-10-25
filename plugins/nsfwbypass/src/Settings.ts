@@ -78,7 +78,7 @@ export const Settings: React.FC<SettingsProps> = () => {
     };
 
     const openDocsLink = () => {
-        url.openURL("https://github.com/ApexTeamPL/Apex-Plugins/tree/master/docs/nsfwbypass");
+        url.openURL("https://github.com/RillonDodgers/Apex-Plugins/tree/master/docs/nsfwbypass");
     };
 
     return React.createElement(

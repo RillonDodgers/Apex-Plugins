@@ -1,0 +1,14 @@
+{
+    "name": "Immich Save",
+    "description": "Save media to Immich",
+    "authors": [
+        {
+            "name": "Rillon",
+            "id": "108930426948620288"
+        }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_edit_24px"
+    }
+}

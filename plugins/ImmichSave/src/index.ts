@@ -5,9 +5,14 @@ import { findByProps } from "@vendetta/metro";
 // Try to find Discord's network utilities
 const DiscordNative = findByProps("fetch") || findByProps("request") || findByProps("http");
 
-// Try to find and patch CSP enforcement
-const CSPUtils = findByProps("checkCSP") || findByProps("validateRequest") || findByProps("allowedOrigins");
-console.log("[ImmichSave] CSP Utils found:", !!CSPUtils);
+// Try to find Discord's internal request methods that might bypass CSP
+const HTTPModule = findByProps("get", "post", "request");
+const RequestModule = findByProps("makeRequest") || findByProps("sendRequest");
+const NetworkModule = findByProps("fetch", "xhr") || findByProps("NetworkingModule");
+
+console.log("[ImmichSave] HTTP Module found:", !!HTTPModule);
+console.log("[ImmichSave] Request Module found:", !!RequestModule); 
+console.log("[ImmichSave] Network Module found:", !!NetworkModule);
 import { 
   getApiKey,
   getServerUrl,
@@ -57,61 +62,65 @@ const testImmichConnection = (): void => {
   // Now test our server
   console.log("[ImmichSave] Testing our server:", `${serverUrl}/api/albums`);
   
-  // Try CSP bypass methods
-  console.log("[ImmichSave] Attempting CSP bypass...");
-  
-  // Method 1: Try data URL bypass
-  const bypassScript = `
-    fetch('${serverUrl}/api/albums', {
-      method: 'GET',
-      headers: {
-        'X-API-KEY': '${apiKey}',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    }).then(r => r.text()).then(data => {
-      window.postMessage({type: 'IMMICH_RESULT', data: data, status: 'success'}, '*');
-    }).catch(e => {
-      window.postMessage({type: 'IMMICH_RESULT', error: e.message, status: 'error'}, '*');
-    });
-  `;
-  
-  const dataUrl = `data:text/html,<script>${encodeURIComponent(bypassScript)}</script>`;
-  
-  // Listen for result
-  const messageHandler = (event) => {
-    if (event.data.type === 'IMMICH_RESULT') {
-      window.removeEventListener('message', messageHandler);
-      if (event.data.status === 'success') {
-        console.log("[ImmichSave] CSP bypass SUCCESS!");
-        showToast("✅ CSP bypass worked!", getAssetIDByName("ic_check"));
-      } else {
-        console.log("[ImmichSave] CSP bypass failed:", event.data.error);
-        // Fallback to normal fetch
-        normalFetch();
-      }
-    }
-  };
-  
-  window.addEventListener('message', messageHandler);
-  
-  // Try to execute bypass
-  try {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = dataUrl;
-    document.body.appendChild(iframe);
-    
-    // Clean up after 5 seconds
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-      window.removeEventListener('message', messageHandler);
-    }, 5000);
-  } catch (e) {
-    console.log("[ImmichSave] Data URL bypass failed, trying normal fetch");
-    normalFetch();
-  }
+  // Skip CSP bypass for now - it crashed the app
+  console.log("[ImmichSave] Skipping CSP bypass (caused crash), trying normal fetch...");
+  normalFetch();
   
   function normalFetch() {
+    // Try Discord's internal HTTP methods first
+    if (HTTPModule?.get) {
+      console.log("[ImmichSave] Trying HTTPModule.get...");
+      try {
+        HTTPModule.get(`${serverUrl}/api/albums`, {
+          headers: {
+            'X-API-KEY': apiKey,
+            'User-Agent': 'Discord-Mobile/1.0'
+          }
+        }).then(response => {
+          console.log("[ImmichSave] HTTPModule SUCCESS:", response);
+          showToast("✅ HTTPModule worked!", getAssetIDByName("ic_check"));
+        }).catch(error => {
+          console.log("[ImmichSave] HTTPModule failed:", error);
+          tryRequestModule();
+        });
+        return;
+      } catch (e) {
+        console.log("[ImmichSave] HTTPModule error:", e);
+      }
+    }
+    
+    tryRequestModule();
+  }
+  
+  function tryRequestModule() {
+    if (RequestModule?.makeRequest) {
+      console.log("[ImmichSave] Trying RequestModule.makeRequest...");
+      try {
+        RequestModule.makeRequest({
+          url: `${serverUrl}/api/albums`,
+          method: 'GET',
+          headers: {
+            'X-API-KEY': apiKey,
+            'User-Agent': 'Discord-Mobile/1.0'
+          }
+        }).then(response => {
+          console.log("[ImmichSave] RequestModule SUCCESS:", response);
+          showToast("✅ RequestModule worked!", getAssetIDByName("ic_check"));
+        }).catch(error => {
+          console.log("[ImmichSave] RequestModule failed:", error);
+          tryNormalFetch();
+        });
+        return;
+      } catch (e) {
+        console.log("[ImmichSave] RequestModule error:", e);
+      }
+    }
+    
+    tryNormalFetch();
+  }
+  
+  function tryNormalFetch() {
+    console.log("[ImmichSave] Falling back to normal fetch...");
     fetch(`${serverUrl}/api/albums`, {
       method: 'GET',
       headers: {

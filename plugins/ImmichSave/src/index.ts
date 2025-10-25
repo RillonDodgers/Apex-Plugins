@@ -70,18 +70,21 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     .then(blob => {
       // console.log("[ImmichSave] Downloaded blob size:", blob.size);
       
-      // Prepare form data for Immich API
+      // Prepare form data for Immich API - all required fields
       const formData = new FormData();
       formData.append('assetData', blob, filename);
       formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
       formData.append('deviceId', 'vendetta-discord');
       formData.append('fileCreatedAt', new Date().toISOString());
       formData.append('fileModifiedAt', new Date().toISOString());
+      formData.append('filename', filename);
+      // Add empty metadata array as required
+      formData.append('metadata', JSON.stringify([]));
       
       // Upload to Immich
       console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
       console.log("[ImmichSave] API Key length:", apiKey.length);
-      console.log("[ImmichSave] FormData prepared with keys:", ['assetData', 'deviceAssetId', 'deviceId', 'fileCreatedAt', 'fileModifiedAt']);
+      console.log("[ImmichSave] FormData prepared with keys:", ['assetData', 'deviceAssetId', 'deviceId', 'fileCreatedAt', 'fileModifiedAt', 'filename', 'metadata']);
       console.log("[ImmichSave] Blob size:", blob.size, "bytes");
       
       return fetch(`${serverUrl}/api/asset/upload`, {

@@ -2,6 +2,8 @@ import { showToast } from "@vendetta/ui/toasts";
 import { before } from '@vendetta/patcher';
 import { getAssetIDByName } from '@vendetta/ui/assets';
 import { findByProps } from "@vendetta/metro";
+// Try to find Discord's network utilities
+const DiscordNative = findByProps("fetch") || findByProps("request") || findByProps("http");
 import { 
   getApiKey,
   getServerUrl,
@@ -29,17 +31,35 @@ const testImmichConnection = (): void => {
   // Try multiple connection tests
   console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/albums`);
   
-  // Test 1: Try with CORS headers
+  // Test 1: First test catbox domains to confirm they work
+  console.log("[ImmichSave] Testing catbox domains first...");
+  
+  const testDomains = [
+    'https://catbox.moe/user/api.php',
+    'https://litterbox.com/resources/internals/api.php', 
+    'https://pomf.se/upload.php'
+  ];
+  
+  testDomains.forEach((testUrl, index) => {
+    fetch(testUrl, { method: 'GET' })
+      .then(response => {
+        console.log(`[ImmichSave] Catbox test ${index + 1}: SUCCESS - ${response.status}`);
+      })
+      .catch(error => {
+        console.log(`[ImmichSave] Catbox test ${index + 1}: FAILED - ${error.message}`);
+      });
+  });
+  
+  // Now test our server
+  console.log("[ImmichSave] Testing our server:", `${serverUrl}/api/albums`);
+  
   fetch(`${serverUrl}/api/albums`, {
     method: 'GET',
     headers: {
       'X-API-KEY': apiKey,
       'User-Agent': 'Discord-Mobile/1.0',
-      'Accept': 'application/json',
-      'Cache-Control': 'no-cache'
-    },
-    mode: 'cors',
-    credentials: 'omit'
+      'Accept': 'application/json'
+    }
   })
   .then(response => {
     console.log("[ImmichSave] Connection test response:", response.status, response.statusText);
@@ -109,10 +129,14 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       console.log("[ImmichSave] FormData prepared with keys:", ['assetData', 'deviceAssetId', 'deviceId', 'fileCreatedAt', 'fileModifiedAt', 'filename', 'metadata']);
       console.log("[ImmichSave] Blob size:", blob.size, "bytes");
       
-      return fetch(`${serverUrl}/api/asset/upload`, {
+      // Try Discord's native fetch (like catbox plugin does)
+      console.log("[ImmichSave] Using Discord's native fetch for upload...");
+      const uploadFetch = DiscordNative?.fetch || fetch;
+      return uploadFetch(`${serverUrl}/api/asset/upload`, {
         method: 'POST',
         headers: {
           'X-API-KEY': apiKey,
+          'User-Agent': 'Discord-Mobile/1.0'
         },
         body: formData
       });

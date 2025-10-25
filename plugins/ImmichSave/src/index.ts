@@ -17,38 +17,36 @@ const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
 const ActionSheetRow = findByProps("ActionSheetRow")?.ActionSheetRow;
 let unpatchActionSheet: any;
 
-const testImmichConnection = async (): Promise<boolean> => {
+const testImmichConnection = (): void => {
   const apiKey = getApiKey();
   const serverUrl = getServerUrl();
   
   if (!apiKey || !serverUrl) {
     showToast("Immich not configured!", getAssetIDByName("ic_close_16px"));
-    return false;
+    return;
   }
 
-  try {
-    console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/server-info/ping`);
-    const response = await fetch(`${serverUrl}/api/server-info/ping`, {
-      method: 'GET',
-      headers: {
-        'X-API-KEY': apiKey,
-      }
-    });
-    
+  console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/server-info/ping`);
+  
+  fetch(`${serverUrl}/api/server-info/ping`, {
+    method: 'GET',
+    headers: {
+      'X-API-KEY': apiKey,
+    }
+  })
+  .then(response => {
     console.log("[ImmichSave] Connection test response:", response.status, response.statusText);
     
     if (response.ok) {
       showToast("✅ Immich connection successful!", getAssetIDByName("ic_check"));
-      return true;
     } else {
       showToast(`❌ Connection failed: ${response.status}`, getAssetIDByName("ic_close_16px"));
-      return false;
     }
-  } catch (error) {
+  })
+  .catch(error => {
     console.error("[ImmichSave] Connection test error:", error);
     showToast(`❌ Cannot reach Immich server`, getAssetIDByName("ic_close_16px"));
-    return false;
-  }
+  });
 };
 
 const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {
@@ -230,7 +228,7 @@ const SettingsComponent = () => {
 
   return React.createElement(React.Fragment, null,
     React.createElement(Forms.FormSection, { title: "Immich Configuration" },
-      React.createElement(Forms.FormText, { style: { marginBottom: 10 } }, 
+      React.createElement(Forms.FormText, { style: { marginBottom: 10, marginLeft: 10 } }, 
         "Configure your Immich server connection:"
       ),
       React.createElement(Forms.FormInput, {
@@ -259,7 +257,7 @@ const SettingsComponent = () => {
     ),
     
     React.createElement(Forms.FormSection, { title: "Status" },
-      React.createElement(Forms.FormText, { style: { marginBottom: 10 } }, 
+      React.createElement(Forms.FormText, { style: { marginBottom: 10, marginLeft: 10 } }, 
         isConfigured() ? "✅ Immich is configured and ready to use!" : "❌ Please configure Immich settings above"
       )
     )

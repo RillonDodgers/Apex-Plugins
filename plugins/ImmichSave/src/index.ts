@@ -77,20 +77,29 @@ export default {
             try {
               const [props] = args;
               
-              // Log ActionSheet details for debugging
-              console.log("[ImmichSave] ActionSheet render:", {
+              // Log ActionSheet details for debugging - explore the full structure
+              console.log("[ImmichSave] ActionSheet render - full props:", {
                 sheetKey: props.sheetKey,
                 hasOptions: !!props.options,
-                optionsCount: props.options?.length || 0
+                optionsCount: props.options?.length || 0,
+                allPropKeys: Object.keys(props),
+                hasMessage: !!props.message,
+                hasContent: !!props.content,
+                hasData: !!props.data,
+                title: props.title,
+                header: props.header
               });
               
-              // Only target MessageLongPressActionSheet
-              if (props.sheetKey !== "MessageLongPressActionSheet") {
-                console.log("[ImmichSave] Skipping ActionSheet:", props.sheetKey);
+              // Since sheetKey is undefined, let's look for other ways to identify message ActionSheets
+              // Check if this ActionSheet has message-related data
+              const hasMessageData = props.message || props.content?.message || props.data?.message;
+              
+              if (!hasMessageData) {
+                console.log("[ImmichSave] Skipping ActionSheet - no message data found");
                 return;
               }
               
-              console.log("[ImmichSave] Processing message ActionSheet:", props.sheetKey);
+              console.log("[ImmichSave] Found ActionSheet with message data - proceeding");
               
               // Add our menu option
               if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {

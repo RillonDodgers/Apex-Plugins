@@ -26,9 +26,9 @@ const testImmichConnection = (): void => {
     return;
   }
 
-  console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/server-info/ping`);
+  console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/albums`);
   
-  fetch(`${serverUrl}/api/server-info/ping`, {
+  fetch(`${serverUrl}/api/albums`, {
     method: 'GET',
     headers: {
       'X-API-KEY': apiKey,
@@ -81,9 +81,8 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       // Upload to Immich
       console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
       console.log("[ImmichSave] API Key length:", apiKey.length);
-      console.log("[ImmichSave] FormData entries:", Array.from(formData.entries()).map(([key, value]) => 
-        key === 'assetData' ? [key, `File: ${(value as File).size} bytes`] : [key, value]
-      ));
+      console.log("[ImmichSave] FormData prepared with keys:", ['assetData', 'deviceAssetId', 'deviceId', 'fileCreatedAt', 'fileModifiedAt']);
+      console.log("[ImmichSave] Blob size:", blob.size, "bytes");
       
       return fetch(`${serverUrl}/api/asset/upload`, {
         method: 'POST',

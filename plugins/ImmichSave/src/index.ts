@@ -17,6 +17,40 @@ const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
 const ActionSheetRow = findByProps("ActionSheetRow")?.ActionSheetRow;
 let unpatchActionSheet: any;
 
+const testImmichConnection = async (): Promise<boolean> => {
+  const apiKey = getApiKey();
+  const serverUrl = getServerUrl();
+  
+  if (!apiKey || !serverUrl) {
+    showToast("Immich not configured!", getAssetIDByName("ic_close_16px"));
+    return false;
+  }
+
+  try {
+    console.log("[ImmichSave] Testing connection to:", `${serverUrl}/api/server-info/ping`);
+    const response = await fetch(`${serverUrl}/api/server-info/ping`, {
+      method: 'GET',
+      headers: {
+        'X-API-KEY': apiKey,
+      }
+    });
+    
+    console.log("[ImmichSave] Connection test response:", response.status, response.statusText);
+    
+    if (response.ok) {
+      showToast("✅ Immich connection successful!", getAssetIDByName("ic_check"));
+      return true;
+    } else {
+      showToast(`❌ Connection failed: ${response.status}`, getAssetIDByName("ic_close_16px"));
+      return false;
+    }
+  } catch (error) {
+    console.error("[ImmichSave] Connection test error:", error);
+    showToast(`❌ Cannot reach Immich server`, getAssetIDByName("ic_close_16px"));
+    return false;
+  }
+};
+
 const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {
   const apiKey = getApiKey();
   const serverUrl = getServerUrl();
@@ -47,7 +81,12 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       formData.append('fileModifiedAt', new Date().toISOString());
       
       // Upload to Immich
-      // console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
+      console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
+      console.log("[ImmichSave] API Key length:", apiKey.length);
+      console.log("[ImmichSave] FormData entries:", Array.from(formData.entries()).map(([key, value]) => 
+        key === 'assetData' ? [key, `File: ${(value as File).size} bytes`] : [key, value]
+      ));
+      
       return fetch(`${serverUrl}/api/asset/upload`, {
         method: 'POST',
         headers: {
@@ -67,7 +106,25 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     })
     .catch(error => {
       console.error('[ImmichSave] Upload error:', error);
-      const errorMessage = error.message || 'Unknown error occurred';
+      console.error('[ImmichSave] Error type:', error.constructor.name);
+      console.error('[ImmichSave] Error stack:', error.stack);
+      
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error.message.includes('Network request failed')) {
+        errorMessage = 'Cannot connect to Immich server. Check your server URL and network connection.';
+      } else if (error.message.includes('Upload failed: 401')) {
+        errorMessage = 'Invalid API key. Please check your Immich API key in settings.';
+      } else if (error.message.includes('Upload failed: 403')) {
+        errorMessage = 'Access denied. Check your API key permissions.';
+      } else if (error.message.includes('Upload failed: 404')) {
+        errorMessage = 'Immich API endpoint not found. Check your server URL.';
+      } else if (error.message.includes('Upload failed: 500')) {
+        errorMessage = 'Immich server error. Check server logs.';
+      } else {
+        errorMessage = error.message || 'Unknown error occurred';
+      }
+      
       showToast(`Failed to save: ${errorMessage}`, getAssetIDByName("ic_close_16px"));
       return false;
     });
@@ -194,6 +251,10 @@ const SettingsComponent = () => {
       React.createElement(Forms.FormRow, {
         label: "Save Server URL",
         onPress: handleSaveServerUrl
+      }),
+      React.createElement(Forms.FormRow, {
+        label: "Test Connection",
+        onPress: testImmichConnection
       })
     ),
     

@@ -14,6 +14,7 @@ import { Forms } from "@vendetta/ui/components";
 
 const LazyActionSheet = findByProps("openLazy", "hideActionSheet");
 const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
+const ActionSheetRow = findByProps("ActionSheetRow")?.ActionSheetRow;
 let unpatchActionSheet: any;
 
 // TODO: Re-implement Immich upload functionality after identifying correct ActionSheet keys
@@ -120,27 +121,51 @@ export default {
                 children: props.children
               });
               
-              // For now, let's just debug the children structure without trying to modify it
-              // This will help us understand what components are actually used
-              if (props.children) {
-                if (Array.isArray(props.children)) {
-                  console.log("[ImmichSave] Children is array with length:", props.children.length);
-                  props.children.forEach((child, index) => {
-                    console.log(`[ImmichSave] Child ${index}:`, {
-                      type: child?.type?.name || child?.type,
-                      props: child?.props ? Object.keys(child.props) : 'no props',
-                      hasOnPress: !!child?.props?.onPress,
-                      label: child?.props?.label || child?.props?.children
-                    });
+              // Now let's try to add our ActionSheetRow to the children
+              if (props.children && Array.isArray(props.children) && ActionSheetRow) {
+                console.log("[ImmichSave] Attempting to add ActionSheetRow to children");
+                
+                // Check if our option already exists
+                const hasImmichOption = props.children.some(child => 
+                  child?.props?.label === "Save to Immich"
+                );
+                
+                if (!hasImmichOption) {
+                  // Create our ActionSheetRow component matching the structure we saw
+                  const saveToImmichRow = React.createElement(ActionSheetRow, {
+                    key: "save-to-immich",
+                    label: "Save to Immich",
+                    icon: getAssetIDByName("ic_download"),
+                    onPress: () => {
+                      try {
+                        console.log("[ImmichSave] Save to Immich pressed!");
+                        console.log("[ImmichSave] Message attachments:", message.attachments);
+                        
+                        const imageAttachments = message.attachments.filter((att: any) => 
+                          att.content_type?.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+                        );
+                        
+                        showToast(`Found ${imageAttachments.length} image(s) to save! (functionality coming soon)`, getAssetIDByName("ic_check"));
+                      } catch (e) {
+                        console.error("[ImmichSave] Error in Save to Immich handler:", e);
+                        showToast("Error occurred", getAssetIDByName("ic_close_16px"));
+                      }
+                    }
                   });
+                  
+                  // Add to the beginning of the children array
+                  props.children.unshift(saveToImmichRow);
+                  console.log("[ImmichSave] Successfully added Save to Immich ActionSheetRow");
                 } else {
-                  console.log("[ImmichSave] Children is not array:", {
-                    type: props.children?.type?.name || props.children?.type,
-                    props: props.children?.props ? Object.keys(props.children.props) : 'no props'
-                  });
+                  console.log("[ImmichSave] Save to Immich option already exists");
                 }
               } else {
-                console.log("[ImmichSave] No children found");
+                console.log("[ImmichSave] Cannot add ActionSheetRow:", {
+                  hasChildren: !!props.children,
+                  isArray: Array.isArray(props.children),
+                  hasActionSheetRow: !!ActionSheetRow
+                });
               }
             } catch (e) {
               console.error("[ImmichSave] ActionSheet patch error:", e);

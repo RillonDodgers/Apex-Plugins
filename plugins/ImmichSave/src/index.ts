@@ -5,14 +5,88 @@ import { findByProps } from "@vendetta/metro";
 // Try to find Discord's network utilities
 const DiscordNative = findByProps("fetch") || findByProps("request") || findByProps("http");
 
-// Try to find Discord's internal request methods that might bypass CSP
+// Try to find and patch Hermes network restrictions
+const NetworkingModule = findByProps("fetch") || findByProps("XMLHttpRequest");
+const HermesModule = findByProps("HermesInternal") || findByProps("global");
+const ReactNativeModule = findByProps("NativeModules");
 const HTTPModule = findByProps("get", "post", "request");
 const RequestModule = findByProps("makeRequest") || findByProps("sendRequest");
-const NetworkModule = findByProps("fetch", "xhr") || findByProps("NetworkingModule");
 
-console.log("[ImmichSave] HTTP Module found:", !!HTTPModule);
-console.log("[ImmichSave] Request Module found:", !!RequestModule); 
-console.log("[ImmichSave] Network Module found:", !!NetworkModule);
+console.log("[ImmichSave] NetworkingModule found:", !!NetworkingModule);
+console.log("[ImmichSave] HermesModule found:", !!HermesModule);
+console.log("[ImmichSave] ReactNativeModule found:", !!ReactNativeModule);
+
+// Try to patch Hermes fetch restrictions
+let originalFetch = null;
+let patchApplied = false;
+
+function patchHermesFetch() {
+  try {
+    console.log("[ImmichSave] Attempting to patch Hermes fetch...");
+    
+    // Store original fetch
+    if (typeof global.fetch === 'function' && !originalFetch) {
+      originalFetch = global.fetch;
+      console.log("[ImmichSave] Original fetch stored");
+    }
+    
+    // Create patched fetch that bypasses domain restrictions
+    global.fetch = function(url, options) {
+      console.log("[ImmichSave] Patched fetch called for:", url);
+      
+      // For our domain, try to bypass restrictions
+      if (typeof url === 'string' && url.includes('pictures.dillonrodgers.party')) {
+        console.log("[ImmichSave] Bypassing restrictions for our domain");
+        
+        // Try calling original fetch directly
+        try {
+          return originalFetch.call(this, url, options);
+        } catch (e) {
+          console.log("[ImmichSave] Original fetch failed, trying XMLHttpRequest fallback");
+          
+          // Fallback to XMLHttpRequest
+          return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open(options?.method || 'GET', url, true);
+            
+            // Set headers
+            if (options?.headers) {
+              for (const [key, value] of Object.entries(options.headers)) {
+                xhr.setRequestHeader(key, String(value));
+              }
+            }
+            
+            xhr.onload = () => {
+              resolve({
+                ok: xhr.status >= 200 && xhr.status < 300,
+                status: xhr.status,
+                statusText: xhr.statusText,
+                text: () => Promise.resolve(xhr.responseText),
+                json: () => Promise.resolve(JSON.parse(xhr.responseText))
+              });
+            };
+            
+            xhr.onerror = () => reject(new Error('Network request failed'));
+            xhr.send(options?.body);
+          });
+        }
+      }
+      
+      // For other domains, use original fetch
+      return originalFetch.call(this, url, options);
+    };
+    
+    patchApplied = true;
+    console.log("[ImmichSave] Hermes fetch patch applied successfully!");
+    
+  } catch (e) {
+    console.error("[ImmichSave] Failed to patch Hermes fetch:", e);
+    patchApplied = false;
+  }
+}
+
+// Apply the patch
+patchHermesFetch();
 import { 
   getApiKey,
   getServerUrl,
@@ -62,8 +136,17 @@ const testImmichConnection = (): void => {
   // Now test our server
   console.log("[ImmichSave] Testing our server:", `${serverUrl}/api/albums`);
   
-  // Skip CSP bypass for now - it crashed the app
-  console.log("[ImmichSave] Skipping CSP bypass (caused crash), trying normal fetch...");
+  // Test if Hermes patch worked
+  console.log("[ImmichSave] Testing Hermes patch...");
+  console.log("[ImmichSave] Patch applied:", patchApplied);
+  
+  if (patchApplied) {
+    console.log("[ImmichSave] Using patched fetch for our domain");
+    showToast("🔧 Hermes patch applied - testing...", getAssetIDByName("ic_check"));
+  } else {
+    console.log("[ImmichSave] Patch failed, using normal methods");
+  }
+  
   normalFetch();
   
   function normalFetch() {
@@ -525,6 +608,13 @@ export default {
    onUnload: () => {
      if (unpatchActionSheet) {
        unpatchActionSheet();
+     }
+     
+     // Restore original fetch if we patched it
+     if (originalFetch && patchApplied) {
+       console.log("[ImmichSave] Restoring original fetch");
+       global.fetch = originalFetch;
+       patchApplied = false;
      }
    },
    

@@ -81,6 +81,10 @@ const testImmichConnection = (): void => {
           showToast("✅ HTTPModule worked!", getAssetIDByName("ic_check"));
         }).catch(error => {
           console.log("[ImmichSave] HTTPModule failed:", error);
+          console.log("[ImmichSave] HTTPModule error type:", error.constructor.name);
+          console.log("[ImmichSave] HTTPModule error message:", error.message);
+          console.log("[ImmichSave] HTTPModule error stack:", error.stack);
+          console.log("[ImmichSave] HTTPModule error props:", Object.keys(error));
           tryRequestModule();
         });
         return;
@@ -108,6 +112,10 @@ const testImmichConnection = (): void => {
           showToast("✅ RequestModule worked!", getAssetIDByName("ic_check"));
         }).catch(error => {
           console.log("[ImmichSave] RequestModule failed:", error);
+          console.log("[ImmichSave] RequestModule error type:", error.constructor.name);
+          console.log("[ImmichSave] RequestModule error message:", error.message);
+          console.log("[ImmichSave] RequestModule error stack:", error.stack);
+          console.log("[ImmichSave] RequestModule error props:", Object.keys(error));
           tryNormalFetch();
         });
         return;
@@ -143,6 +151,30 @@ const testImmichConnection = (): void => {
     })
     .catch(error => {
       console.error("[ImmichSave] Primary connection test failed:", error);
+      console.error("[ImmichSave] Fetch error type:", error.constructor.name);
+      console.error("[ImmichSave] Fetch error message:", error.message);
+      console.error("[ImmichSave] Fetch error stack:", error.stack);
+      console.error("[ImmichSave] Fetch error cause:", error.cause);
+      console.error("[ImmichSave] Fetch error code:", error.code);
+      console.error("[ImmichSave] Fetch error errno:", error.errno);
+      console.error("[ImmichSave] Fetch error syscall:", error.syscall);
+      console.error("[ImmichSave] Fetch error hostname:", error.hostname);
+      console.error("[ImmichSave] Fetch error port:", error.port);
+      console.error("[ImmichSave] Fetch error address:", error.address);
+      console.error("[ImmichSave] Fetch all error props:", Object.keys(error));
+      console.error("[ImmichSave] Fetch error toString:", error.toString());
+      console.error("[ImmichSave] Fetch error valueOf:", error.valueOf());
+      
+      // Try to get more details about the network failure
+      if (typeof error === 'object' && error !== null) {
+        for (const key in error) {
+          try {
+            console.error(`[ImmichSave] Fetch error.${key}:`, error[key]);
+          } catch (e) {
+            console.error(`[ImmichSave] Could not log error.${key}`);
+          }
+        }
+      }
       
       // Test 2: Try simpler request to base server
       console.log("[ImmichSave] Trying simpler connection test to:", serverUrl);
@@ -157,6 +189,9 @@ const testImmichConnection = (): void => {
       })
       .catch(error2 => {
         console.error("[ImmichSave] All connection tests failed:", error2);
+        console.error("[ImmichSave] Final error type:", error2.constructor.name);
+        console.error("[ImmichSave] Final error message:", error2.message);
+        console.error("[ImmichSave] Final error stack:", error2.stack);
         showToast(`❌ Cannot reach server: ${error.message}`, getAssetIDByName("ic_close_16px"));
       });
     });

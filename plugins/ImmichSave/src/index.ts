@@ -205,84 +205,178 @@ export default {
   onLoad: () => {
     initModules();
     
-    // Approach 1: Patch message components directly for long press
-    const messageUnpatch = before("render", findByProps("MessageContent").MessageContent, (args) => {
-      try {
-        const [props] = args;
-        
-        // Get the message from props
-        const message = props.message;
-        if (!message || !message.attachments || message.attachments.length === 0) return;
-        
-        // Check if message has image attachments
-        const hasImages = message.attachments.some((att: any) => 
-          att.content_type?.startsWith('image/') || 
-          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-        );
-        
-        if (!hasImages) return;
-        
-        // Add long press handler to the message content
-        const originalOnLongPress = props.onLongPress;
-        props.onLongPress = (event: any) => {
-          // Call original long press handler first
-          if (originalOnLongPress) {
-            originalOnLongPress(event);
-          }
-          
-          // Show our custom action sheet
-          showImmichActionSheet(message);
-        };
-        
-      } catch (e) {
-        console.error("Message content patch error:", e);
-      }
-    });
+    // Approach 1: Try to find message components with multiple possible names
+    let messageUnpatch: any = null;
     
-    patches.push(messageUnpatch);
+    // Try different component names that might contain message content
+    const possibleMessageComponents = [
+      "MessageContent",
+      "Message",
+      "MessageComponent", 
+      "MessageContainer",
+      "MessageWrapper"
+    ];
     
-    // Approach 2: Patch ActionSheet to add our option when message context menu is shown
-    const actionSheetUnpatch = before("render", findByProps("ActionSheet").ActionSheet, (args) => {
+    for (const componentName of possibleMessageComponents) {
       try {
-        const [props] = args;
-        
-        // Check if this is a message context menu
-        if (props.sheetKey !== "MessageOverflow") return;
-        
-        // Get the message from props or context
-        const message = props.message || props.content?.props?.message;
-        if (!message || !message.attachments || message.attachments.length === 0) return;
-        
-        // Check if message has image attachments
-        const hasImages = message.attachments.some((att: any) => 
-          att.content_type?.startsWith('image/') || 
-          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-        );
-        
-        if (!hasImages) return;
-        
-        // Add the "Save to Immich" option
-        if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
-          props.options.unshift({
-            label: "Save to Immich",
-            icon: getAssetIDByName("ic_download"),
-            onPress: () => {
-              try {
-                saveImagesFromMessage(message);
-                props.hideActionSheet?.();
-              } catch (e) {
-                console.error("Error saving to Immich:", e);
-                showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
-              }
-            },
+        const component = findByProps(componentName)?.[componentName];
+        if (component) {
+          console.log(`Found message component: ${componentName}`);
+          messageUnpatch = before("render", component, (args) => {
+            try {
+              const [props] = args;
+              
+              // Get the message from props (try different possible prop names)
+              const message = props.message || props.messageData || props.data;
+              if (!message || !message.attachments || message.attachments.length === 0) return;
+              
+              // Check if message has image attachments
+              const hasImages = message.attachments.some((att: any) => 
+                att.content_type?.startsWith('image/') || 
+                /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+              );
+              
+              if (!hasImages) return;
+              
+              // Add long press handler to the message content
+              const originalOnLongPress = props.onLongPress;
+              props.onLongPress = (event: any) => {
+                // Call original long press handler first
+                if (originalOnLongPress) {
+                  originalOnLongPress(event);
+                }
+                
+                // Show our custom action sheet
+                showImmichActionSheet(message);
+              };
+              
+            } catch (e) {
+              console.error("Message content patch error:", e);
+            }
           });
+          break; // Found a working component, stop searching
         }
       } catch (e) {
-        console.error("ActionSheet patch error:", e);
+        console.log(`Component ${componentName} not found, trying next...`);
+        continue;
       }
-    });
+    }
     
-    patches.push(actionSheetUnpatch);
+    if (messageUnpatch) {
+      patches.push(messageUnpatch);
+    } else {
+      console.warn("Could not find any message component to patch");
+    }
+    
+    // Approach 2: Patch ActionSheet to add our option when message context menu is shown
+    let actionSheetUnpatch: any = null;
+    
+    try {
+      const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
+      if (ActionSheet) {
+        console.log("Found ActionSheet component");
+        actionSheetUnpatch = before("render", ActionSheet, (args) => {
+          try {
+            const [props] = args;
+            
+            // Check if this is a message context menu
+            if (props.sheetKey !== "MessageOverflow") return;
+            
+            // Get the message from props or context
+            const message = props.message || props.content?.props?.message;
+            if (!message || !message.attachments || message.attachments.length === 0) return;
+            
+            // Check if message has image attachments
+            const hasImages = message.attachments.some((att: any) => 
+              att.content_type?.startsWith('image/') || 
+              /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+            );
+            
+            if (!hasImages) return;
+            
+            // Add the "Save to Immich" option
+            if (props.options && !props.options.some((option: any) => option?.label === "Save to Immich")) {
+              props.options.unshift({
+                label: "Save to Immich",
+                icon: getAssetIDByName("ic_download"),
+                onPress: () => {
+                  try {
+                    saveImagesFromMessage(message);
+                    props.hideActionSheet?.();
+                  } catch (e) {
+                    console.error("Error saving to Immich:", e);
+                    showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
+                  }
+                },
+              });
+            }
+          } catch (e) {
+            console.error("ActionSheet patch error:", e);
+          }
+        });
+      } else {
+        console.warn("Could not find ActionSheet component");
+      }
+    } catch (e) {
+      console.error("Error setting up ActionSheet patch:", e);
+    }
+    
+    if (actionSheetUnpatch) {
+      patches.push(actionSheetUnpatch);
+    }
+    
+    // Approach 3: Fallback - patch ScrollView like the original approach but with better error handling
+    if (!messageUnpatch && !actionSheetUnpatch) {
+      console.log("Trying fallback ScrollView approach...");
+      try {
+        const ScrollView = findByProps("ScrollView")?.View;
+        if (ScrollView) {
+          console.log("Found ScrollView component for fallback");
+          const fallbackUnpatch = before("render", ScrollView, (args) => {
+            try {
+              // Find the message context menu in React tree
+              let messageMenu = findInReactTree(args, (r) => r.key === ".$MessageOverflow");
+              if (!messageMenu || !messageMenu.props || messageMenu.props.sheetKey !== "MessageOverflow") return;
+              
+              const props = messageMenu.props.content?.props;
+              if (!props?.options || props.options.some((option: any) => option?.label === "Save to Immich")) return;
+              
+              // Get the message from the context
+              const message = messageMenu.props.message;
+              if (!message || !message.attachments || message.attachments.length === 0) return;
+              
+              // Check if message has image attachments
+              const hasImages = message.attachments.some((att: any) => 
+                att.content_type?.startsWith('image/') || 
+                /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
+              );
+              
+              if (!hasImages) return;
+              
+              // Add the "Save to Immich" option
+              props.options.unshift({
+                label: "Save to Immich",
+                icon: getAssetIDByName("ic_download"),
+                onPress: () => {
+                  try {
+                    saveImagesFromMessage(message);
+                    props.hideActionSheet?.();
+                  } catch (e) {
+                    console.error("Error saving to Immich:", e);
+                    showToast("Failed to save images to Immich", getAssetIDByName("ic_close_16px"));
+                  }
+                },
+              });
+            } catch (e) {
+              console.error("Fallback ScrollView patch error:", e);
+            }
+          });
+          patches.push(fallbackUnpatch);
+        }
+      } catch (e) {
+        console.error("Error setting up fallback ScrollView patch:", e);
+      }
+    }
   },
 
   onUnload: () => {

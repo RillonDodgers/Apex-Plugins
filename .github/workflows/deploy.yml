@@ -6,7 +6,7 @@ on:
 
 jobs:
     deploy:
-        runs-on: [self-hosted, ubuntu-vmsrv]
+        runs-on: ubuntu-latest
         permissions:
           contents: write
 

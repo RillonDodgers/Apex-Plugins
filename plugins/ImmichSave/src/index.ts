@@ -120,40 +120,27 @@ export default {
                 children: props.children
               });
               
-              // Try to modify children instead of options
-              if (props.children && Array.isArray(props.children)) {
-                console.log("[ImmichSave] Attempting to add option to children array");
-                
-                // Create our menu option component
-                const saveToImmichOption = React.createElement("div", {
-                  key: "save-to-immich",
-                  onClick: () => {
-                    try {
-                      console.log("[ImmichSave] Save to Immich pressed!");
-                      console.log("[ImmichSave] Message attachments:", message.attachments);
-                      
-                      const imageAttachments = message.attachments.filter((att: any) => 
-                        att.content_type?.startsWith('image/') || 
-                        /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(att.filename)
-                      );
-                      
-                      showToast(`Found ${imageAttachments.length} image(s) to save! (functionality coming soon)`, getAssetIDByName("ic_check"));
-                    } catch (e) {
-                      console.error("[ImmichSave] Error in Save to Immich handler:", e);
-                      showToast("Error occurred", getAssetIDByName("ic_close_16px"));
-                    }
-                  }
-                }, "Save to Immich");
-                
-                // Add to beginning of children array
-                props.children.unshift(saveToImmichOption);
-                console.log("[ImmichSave] Successfully added Save to Immich to children");
+              // For now, let's just debug the children structure without trying to modify it
+              // This will help us understand what components are actually used
+              if (props.children) {
+                if (Array.isArray(props.children)) {
+                  console.log("[ImmichSave] Children is array with length:", props.children.length);
+                  props.children.forEach((child, index) => {
+                    console.log(`[ImmichSave] Child ${index}:`, {
+                      type: child?.type?.name || child?.type,
+                      props: child?.props ? Object.keys(child.props) : 'no props',
+                      hasOnPress: !!child?.props?.onPress,
+                      label: child?.props?.label || child?.props?.children
+                    });
+                  });
+                } else {
+                  console.log("[ImmichSave] Children is not array:", {
+                    type: props.children?.type?.name || props.children?.type,
+                    props: props.children?.props ? Object.keys(props.children.props) : 'no props'
+                  });
+                }
               } else {
-                console.log("[ImmichSave] Could not add option - children is not an array:", {
-                  hasChildren: !!props.children,
-                  childrenType: typeof props.children,
-                  isArray: Array.isArray(props.children)
-                });
+                console.log("[ImmichSave] No children found");
               }
             } catch (e) {
               console.error("[ImmichSave] ActionSheet patch error:", e);

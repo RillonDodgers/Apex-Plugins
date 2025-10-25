@@ -26,7 +26,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     return Promise.resolve(false);
   }
 
-  console.log("[ImmichSave] Downloading file:", fileUrl);
+  // console.log("[ImmichSave] Downloading file:", fileUrl);
   
   return fetch(fileUrl)
     .then(response => {
@@ -36,7 +36,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       return response.blob();
     })
     .then(blob => {
-      console.log("[ImmichSave] Downloaded blob size:", blob.size);
+      // console.log("[ImmichSave] Downloaded blob size:", blob.size);
       
       // Prepare form data for Immich API
       const formData = new FormData();
@@ -47,7 +47,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       formData.append('fileModifiedAt', new Date().toISOString());
       
       // Upload to Immich
-      console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
+      // console.log("[ImmichSave] Uploading to Immich:", `${serverUrl}/api/asset/upload`);
       return fetch(`${serverUrl}/api/asset/upload`, {
         method: 'POST',
         headers: {
@@ -62,12 +62,13 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
           throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
         });
       }
-      console.log("[ImmichSave] Upload successful");
+      // console.log("[ImmichSave] Upload successful");
       return true;
     })
     .catch(error => {
       console.error('[ImmichSave] Upload error:', error);
-      showToast(`Upload failed: ${error.message}`, getAssetIDByName("ic_close_16px"));
+      const errorMessage = error.message || 'Unknown error occurred';
+      showToast(`Failed to save: ${errorMessage}`, getAssetIDByName("ic_close_16px"));
       return false;
     });
 };
@@ -98,7 +99,7 @@ const saveMediaFromMessage = (message: any): void => {
     return;
   }
 
-  console.log("[ImmichSave] Found media attachments:", mediaAttachments.length);
+  // console.log("[ImmichSave] Found media attachments:", mediaAttachments.length);
   showToast(`Uploading ${mediaAttachments.length} file(s) to Immich...`, getAssetIDByName("ic_upload"));
 
   let successCount = 0;
@@ -132,7 +133,7 @@ const saveMediaFromMessage = (message: any): void => {
         }
       })
       .catch(error => {
-        console.error("[ImmichSave] Error processing attachment:", error);
+        // console.error("[ImmichSave] Error processing attachment:", error);
         failCount++;
         completedCount++;
         
@@ -206,32 +207,32 @@ const SettingsComponent = () => {
 
 export default {
    onLoad: () => {
-        console.log("[ImmichSave] Plugin loaded!");
+        // console.log("[ImmichSave] Plugin loaded!");
         
         if (ActionSheet) {
-          console.log("[ImmichSave] Found ActionSheet component, patching render method");
+          // console.log("[ImmichSave] Found ActionSheet component, patching render method");
           unpatchActionSheet = before("render", ActionSheet, (args) => {
             try {
               const [props] = args;
               
               // Log ActionSheet details for debugging - explore the full structure
-              console.log("[ImmichSave] ActionSheet render - full props:", {
-                sheetKey: props.sheetKey,
-                hasOptions: !!props.options,
-                optionsCount: props.options?.length || 0,
-                allPropKeys: Object.keys(props),
-                hasMessage: !!props.message,
-                hasContent: !!props.content,
-                hasData: !!props.data,
-                title: props.title,
-                header: props.header
-              });
+              // console.log("[ImmichSave] ActionSheet render - full props:", {
+              //   sheetKey: props.sheetKey,
+              //   hasOptions: !!props.options,
+              //   optionsCount: props.options?.length || 0,
+              //   allPropKeys: Object.keys(props),
+              //   hasMessage: !!props.message,
+              //   hasContent: !!props.content,
+              //   hasData: !!props.data,
+              //   title: props.title,
+              //   header: props.header
+              // });
               
               // Extract message from the header props (based on the log structure we saw)
               const message = props.header?.props?.message;
               
               if (!message) {
-                console.log("[ImmichSave] Skipping ActionSheet - no message found in header.props");
+                // console.log("[ImmichSave] Skipping ActionSheet - no message found in header.props");
                 return;
               }
               
@@ -245,24 +246,24 @@ export default {
               });
               
               if (!hasMediaAttachments) {
-                console.log("[ImmichSave] Skipping - no image or video attachments found");
+                // console.log("[ImmichSave] Skipping - no image or video attachments found");
                 return;
               }
               
-              console.log("[ImmichSave] Found message with media attachments - proceeding");
+              // console.log("[ImmichSave] Found message with media attachments - proceeding");
               
               // Debug the children structure since options is undefined
-              console.log("[ImmichSave] Children debug:", {
-                hasChildren: !!props.children,
-                childrenType: typeof props.children,
-                childrenIsArray: Array.isArray(props.children),
-                childrenLength: props.children?.length,
-                children: props.children
-              });
+              // console.log("[ImmichSave] Children debug:", {
+              //   hasChildren: !!props.children,
+              //   childrenType: typeof props.children,
+              //   childrenIsArray: Array.isArray(props.children),
+              //   childrenLength: props.children?.length,
+              //   children: props.children
+              // });
               
               // Now let's try to add our ActionSheetRow to the children
               if (props.children && Array.isArray(props.children) && ActionSheetRow) {
-                console.log("[ImmichSave] Attempting to add ActionSheetRow to children");
+                // console.log("[ImmichSave] Attempting to add ActionSheetRow to children");
                 
                 // Check if our option already exists
                 const hasImmichOption = props.children.some(child => 
@@ -277,34 +278,34 @@ export default {
                     icon: getAssetIDByName("ic_download"),
                     onPress: () => {
                       try {
-                        console.log("[ImmichSave] Save to Immich pressed!");
+                        // console.log("[ImmichSave] Save to Immich pressed!");
                         saveMediaFromMessage(message);
                       } catch (e) {
                         console.error("[ImmichSave] Error in Save to Immich handler:", e);
-                        showToast("Error occurred", getAssetIDByName("ic_close_16px"));
+                        showToast(`Failed to save: ${e.message || 'Unknown error'}`, getAssetIDByName("ic_close_16px"));
                       }
                     }
                   });
                   
                   // Add to the beginning of the children array
                   props.children.unshift(saveToImmichRow);
-                  console.log("[ImmichSave] Successfully added Save to Immich ActionSheetRow");
+                  // console.log("[ImmichSave] Successfully added Save to Immich ActionSheetRow");
                 } else {
-                  console.log("[ImmichSave] Save to Immich option already exists");
+                  // console.log("[ImmichSave] Save to Immich option already exists");
                 }
               } else {
-                console.log("[ImmichSave] Cannot add ActionSheetRow:", {
-                  hasChildren: !!props.children,
-                  isArray: Array.isArray(props.children),
-                  hasActionSheetRow: !!ActionSheetRow
-                });
+                // console.log("[ImmichSave] Cannot add ActionSheetRow:", {
+                //   hasChildren: !!props.children,
+                //   isArray: Array.isArray(props.children),
+                //   hasActionSheetRow: !!ActionSheetRow
+                // });
               }
             } catch (e) {
               console.error("[ImmichSave] ActionSheet patch error:", e);
             }
           });
         } else {
-          console.warn("[ImmichSave] Could not find ActionSheet component");
+          // console.warn("[ImmichSave] Could not find ActionSheet component");
         }
    },
    onUnload: () => {

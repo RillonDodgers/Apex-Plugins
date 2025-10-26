@@ -79,15 +79,23 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       console.log('[ImmichSave] Blob type:', blob.type);
       
       const formData = new FormData();
-      
-      // Try creating a proper File object first
+
+      // Create proper File object matching Immich CLI approach
       const file = new File([blob], filename, { type: blob.type });
       formData.append('assetData', file);
-      formData.append('deviceAssetId', uuidv4());
+
+      // Use filename-size format like Immich CLI (without spaces)
+      formData.append('deviceAssetId', `${filename}-${blob.size}`.replace(/\s+/g, ''));
       formData.append('deviceId', 'vendetta-discord');
-      formData.append('fileCreatedAt', new Date().toISOString());
-      formData.append('fileModifiedAt', new Date().toISOString());
-      formData.append('filename', filename);
+
+      // Use current time for both created/modified (we don't have original file stats)
+      const now = new Date().toISOString();
+      formData.append('fileCreatedAt', now);
+      formData.append('fileModifiedAt', now);
+
+      // Add fileSize - this is crucial for binary integrity!
+      formData.append('fileSize', String(blob.size));
+      formData.append('isFavorite', 'false');
       
       console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
       

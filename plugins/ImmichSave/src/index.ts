@@ -9,6 +9,12 @@ import {
   updateServerUrl,
   isConfigured
 } from "./Settings";
+
+function uuidv4() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
 import { React } from "@vendetta/metro/common";
 import { Forms } from "@vendetta/ui/components";
 
@@ -77,7 +83,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       // Try creating a proper File object first
       const file = new File([blob], filename, { type: blob.type });
       formData.append('assetData', file);
-      formData.append('deviceAssetId', crypto.randomUUID());
+      formData.append('deviceAssetId', uuidv4());
       formData.append('deviceId', 'vendetta-discord');
       formData.append('fileCreatedAt', new Date().toISOString());
       formData.append('fileModifiedAt', new Date().toISOString());

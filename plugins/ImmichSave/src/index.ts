@@ -75,40 +75,6 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       return response.blob();
     })
     .then(blob => {
-      console.log('[ImmichSave] Downloaded blob size:', blob.size, 'bytes');
-      console.log('[ImmichSave] Blob type:', blob.type);
-      
-      // Inspect the blob using FileReader for debugging
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const buffer = e.target?.result as ArrayBuffer;
-          if (!buffer || typeof buffer === 'string') {
-            resolve(blob);
-            return;
-          }
-          const uint8Array = new Uint8Array(buffer);
-          
-          // Log first 20 bytes as hex to see if content is actually different
-          const firstBytes = Array.from(uint8Array.slice(0, 20))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join(' ');
-          console.log('[ImmichSave] First 20 bytes (hex):', firstBytes);
-          
-          // Calculate a simple checksum of first 100 bytes
-          let checksum = 0;
-          for (let i = 0; i < Math.min(100, uint8Array.length); i++) {
-            checksum = (checksum + uint8Array[i]) % 65536;
-          }
-          console.log('[ImmichSave] Simple checksum (first 100 bytes):', checksum);
-          
-          // Return original blob for upload
-          resolve(blob);
-        };
-        reader.readAsArrayBuffer(blob);
-      });
-    })
-    .then(blob => {
       const formData = new FormData();
 
       // Create proper File object from blob (Immich requires File, not raw blob)
@@ -119,9 +85,10 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
 
       formData.append('assetData', file);
 
-      // Extract numbers from filename as deviceAssetId
-      const numbersFromFilename = filename.match(/\d+/g)?.join('') || uuidv4();
-      formData.append('deviceAssetId', numbersFromFilename);
+      // Create unique deviceAssetId using filename numbers + file size + timestamp
+      const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
+      const uniqueId = `${numbersFromFilename}-${blob.size}-${Date.now()}`;
+      formData.append('deviceAssetId', uniqueId);
       formData.append('deviceId', 'discord');
 
       // Use current time for both created/modified (we don't have original file stats)
@@ -131,7 +98,8 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
 
       // Add fileSize - this is crucial for binary integrity!
       formData.append('fileSize', String(blob.size));
-      formData.append('isFavorite', 'false');
+
+      console.log('[ImmichSave] Form data:', formData);
       
       console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
       

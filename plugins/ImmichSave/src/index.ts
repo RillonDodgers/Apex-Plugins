@@ -77,41 +77,37 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     .then(blob => {
       const formData = new FormData();
 
-      // Create proper File object from blob (Immich requires File, not raw blob)
-      const file = new File([blob], filename, { 
-        type: blob.type || 'application/octet-stream',
-        lastModified: Date.now()
-      });
-      
-      // Debug the file object and blob
-      console.log('[ImmichSave] Original blob:', {
-        size: blob.size,
-        type: blob.type
-      });
-      console.log('[ImmichSave] File object:', {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified
-      });
-      console.log('[ImmichSave] Filename from Discord:', filename);
-      console.log('[ImmichSave] File URL being downloaded:', fileUrl);
-      
-      // Check if we're somehow getting the same blob every time
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const buffer = e.target?.result as ArrayBuffer;
-        if (buffer) {
-          const uint8Array = new Uint8Array(buffer);
-          const firstBytes = Array.from(uint8Array.slice(0, 10))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join(' ');
-          console.log('[ImmichSave] First 10 bytes of actual file:', firstBytes);
+      // Create UploadFile class similar to Immich CLI
+      class UploadFile extends File {
+        private _blob: Blob;
+        
+        constructor(blob: Blob, filename: string) {
+          super([], filename); // Empty array like CLI does
+          this._blob = blob;
         }
-      };
-      reader.readAsArrayBuffer(file);
+        
+        get size() {
+          return this._blob.size;
+        }
+        
+        get type() {
+          return this._blob.type;
+        }
+        
+        stream() {
+          return this._blob.stream();
+        }
+      }
+      
+      const uploadFile = new UploadFile(blob, filename);
 
-      formData.append('assetData', file);
+      console.log('[ImmichSave] Created UploadFile like CLI:', {
+        name: uploadFile.name,
+        size: uploadFile.size,
+        type: uploadFile.type
+      });
+      
+      formData.append('assetData', uploadFile);
 
       // Create unique deviceAssetId using filename numbers + file size + timestamp
       const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
@@ -127,7 +123,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       // Add fileSize - this is crucial for binary integrity!
       formData.append('fileSize', String(blob.size));
 
-      console.log('[ImmichSave] Form data:', formData);
+      // FormData logging can interfere with binary data
       
       console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
       
@@ -136,6 +132,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
         headers: {
           'x-api-key': apiKey,
           'Accept': 'application/json'
+          // Don't set Content-Type - let browser handle multipart/form-data boundary
         },
         body: formData
       });

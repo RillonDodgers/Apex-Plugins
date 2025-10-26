@@ -80,9 +80,8 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       
       const formData = new FormData();
 
-      // Create proper File object matching Immich CLI approach
-      const file = new File([blob], filename, { type: blob.type });
-      formData.append('assetData', file);
+      // Try using raw blob instead of File object
+      formData.append('assetData', blob, filename);
 
       // Extract numbers from filename as deviceAssetId
       const numbersFromFilename = filename.match(/\d+/g)?.join('') || uuidv4();

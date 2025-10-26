@@ -82,6 +82,34 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
         type: blob.type || 'application/octet-stream',
         lastModified: Date.now()
       });
+      
+      // Debug the file object and blob
+      console.log('[ImmichSave] Original blob:', {
+        size: blob.size,
+        type: blob.type
+      });
+      console.log('[ImmichSave] File object:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      });
+      console.log('[ImmichSave] Filename from Discord:', filename);
+      console.log('[ImmichSave] File URL being downloaded:', fileUrl);
+      
+      // Check if we're somehow getting the same blob every time
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const buffer = e.target?.result as ArrayBuffer;
+        if (buffer) {
+          const uint8Array = new Uint8Array(buffer);
+          const firstBytes = Array.from(uint8Array.slice(0, 10))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(' ');
+          console.log('[ImmichSave] First 10 bytes of actual file:', firstBytes);
+        }
+      };
+      reader.readAsArrayBuffer(file);
 
       formData.append('assetData', file);
 

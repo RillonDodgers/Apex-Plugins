@@ -84,8 +84,9 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       const file = new File([blob], filename, { type: blob.type });
       formData.append('assetData', file);
 
-      // Use filename-size format like Immich CLI (without spaces)
-      formData.append('deviceAssetId', uuidv4());
+      // Extract numbers from filename as deviceAssetId
+      const numbersFromFilename = filename.match(/\d+/g)?.join('') || uuidv4();
+      formData.append('deviceAssetId', numbersFromFilename);
       formData.append('deviceId', 'discord');
 
       // Use current time for both created/modified (we don't have original file stats)

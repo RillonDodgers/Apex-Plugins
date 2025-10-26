@@ -77,12 +77,11 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       // Try creating a proper File object first
       const file = new File([blob], filename, { type: blob.type });
       formData.append('assetData', file);
-      formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+      formData.append('deviceAssetId', crypto.randomUUID());
       formData.append('deviceId', 'vendetta-discord');
       formData.append('fileCreatedAt', new Date().toISOString());
       formData.append('fileModifiedAt', new Date().toISOString());
       formData.append('filename', filename);
-      formData.append('metadata', JSON.stringify([]));
       
       console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
       

@@ -55,14 +55,23 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
   }
 
   
+  console.log('[ImmichSave] Starting upload for:', filename);
+  console.log('[ImmichSave] File URL:', fileUrl);
+  console.log('[ImmichSave] Server URL:', serverUrl);
+  console.log('[ImmichSave] API Key length:', apiKey.length);
+  
   return fetch(fileUrl)
     .then(response => {
+      console.log('[ImmichSave] File download response:', response.status, response.statusText);
       if (!response.ok) {
         throw new Error(`Failed to download file: ${response.status}`);
       }
       return response.blob();
     })
     .then(blob => {
+      console.log('[ImmichSave] Downloaded blob size:', blob.size, 'bytes');
+      console.log('[ImmichSave] Blob type:', blob.type);
+      
       const formData = new FormData();
       formData.append('assetData', blob, filename);
       formData.append('deviceAssetId', `discord_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
@@ -71,6 +80,8 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       formData.append('fileModifiedAt', new Date().toISOString());
       formData.append('filename', filename);
       formData.append('metadata', JSON.stringify([]));
+      
+      console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
       
       return fetch(`${serverUrl}/api/assets`, {
         method: 'POST',
@@ -82,14 +93,27 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       });
     })
     .then(uploadResponse => {
+      console.log('[ImmichSave] Upload response status:', uploadResponse.status, uploadResponse.statusText);
+      console.log('[ImmichSave] Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()));
+      
       if (!uploadResponse.ok) {
         return uploadResponse.text().then(errorText => {
+          console.log('[ImmichSave] Upload error response body:', errorText);
           throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
         });
       }
-      return true;
+      
+      return uploadResponse.text().then(responseText => {
+        console.log('[ImmichSave] Upload success response:', responseText);
+        return true;
+      });
     })
     .catch(error => {
+      console.error('[ImmichSave] Upload error:', error);
+      console.error('[ImmichSave] Error message:', error.message);
+      console.error('[ImmichSave] Error type:', error.constructor.name);
+      console.error('[ImmichSave] Error stack:', error.stack);
+      
       let errorMessage = 'Unknown error occurred';
       
       if (error.message.includes('Network request failed')) {

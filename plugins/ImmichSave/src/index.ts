@@ -59,21 +59,39 @@ const getCacheFilePath = (filename: string): string => {
 
 // Helper function to write blob to cache file
 const writeBlobToCache = (blob: Blob, cachePath: string): Promise<void> => {
-  return blob.arrayBuffer().then(arrayBuffer => {
-    const uint8Array = new Uint8Array(arrayBuffer);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
     
-    // Use FileSystem API if available, otherwise fall back to different approach
-    if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
-      // We're in a browser environment but can't use cache directly
-      // Store in memory instead for this approach
-      (window as any).__immichCache = (window as any).__immichCache || {};
-      (window as any).__immichCache[cachePath] = uint8Array;
-    } else {
-      // For React Native or other environments, we'll use a different approach
-      // Store the data in a global cache object
-      (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
-      (globalThis as any).__immichCache[cachePath] = uint8Array;
-    }
+    reader.onload = function(event) {
+      try {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        if (!arrayBuffer) {
+          reject(new Error('Failed to read blob data'));
+          return;
+        }
+        
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        // Store the data in a global cache object
+        if (typeof window !== 'undefined') {
+          (window as any).__immichCache = (window as any).__immichCache || {};
+          (window as any).__immichCache[cachePath] = uint8Array;
+        } else {
+          (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
+          (globalThis as any).__immichCache[cachePath] = uint8Array;
+        }
+        
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = function() {
+      reject(new Error('FileReader failed to read blob'));
+    };
+    
+    reader.readAsArrayBuffer(blob);
   });
 };
 

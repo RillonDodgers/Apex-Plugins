@@ -15,6 +15,28 @@ function uuidv4() {
     (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
   );
 }
+
+// UploadFile class similar to Immich CLI
+class UploadFile extends File {
+  private _blob: Blob;
+  
+  constructor(blob: Blob, filename: string) {
+    super([], filename); // Empty array like CLI does
+    this._blob = blob;
+  }
+  
+  get size() {
+    return this._blob.size;
+  }
+  
+  get type() {
+    return this._blob.type;
+  }
+  
+  stream() {
+    return this._blob.stream();
+  }
+}
 import { React } from "@vendetta/metro/common";
 import { Forms } from "@vendetta/ui/components";
 
@@ -77,28 +99,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     .then(blob => {
       const formData = new FormData();
 
-      // Create UploadFile class similar to Immich CLI
-      class UploadFile extends File {
-        private _blob: Blob;
-        
-        constructor(blob: Blob, filename: string) {
-          super([], filename); // Empty array like CLI does
-          this._blob = blob;
-        }
-        
-        get size() {
-          return this._blob.size;
-        }
-        
-        get type() {
-          return this._blob.type;
-        }
-        
-        stream() {
-          return this._blob.stream();
-        }
-      }
-      
+      // Create UploadFile instance using the class defined at module level
       const uploadFile = new UploadFile(blob, filename);
 
       console.log('[ImmichSave] Created UploadFile like CLI:', {

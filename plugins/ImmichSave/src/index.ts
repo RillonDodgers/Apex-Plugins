@@ -440,9 +440,7 @@ export default {
                     const hasMediaActions = group.props.children.some((child: any) => 
                       child?.props?.label === "Save Image" || 
                       child?.props?.label === "Save Video" ||
-                      child?.props?.label === "Copy Media Link" ||
-                      child?.props?.label === "Copy Message Link" ||
-                      child?.props?.label === "Copy Message ID"
+                      child?.props?.label === "Copy Media Link"
                     );
                     if (hasMediaActions) {
                       targetGroupIndex = i;

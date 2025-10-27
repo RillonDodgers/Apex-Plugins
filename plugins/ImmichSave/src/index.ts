@@ -440,7 +440,9 @@ export default {
                     const hasMediaActions = group.props.children.some((child: any) => 
                       child?.props?.label === "Save Image" || 
                       child?.props?.label === "Save Video" ||
-                      child?.props?.label === "Copy Media Link"
+                      child?.props?.label === "Copy Media Link" ||
+                      child?.props?.label === "Copy Message Link" ||
+                      child?.props?.label === "Copy Message ID"
                     );
                     if (hasMediaActions) {
                       targetGroupIndex = i;
@@ -459,7 +461,7 @@ export default {
                     const saveToImmichRow = React.createElement(ActionSheetRow, {
                     key: "save-to-immich",
                     label: "Save to Immich",
-                    icon: getAssetIDByName("ic_image"),
+                    icon: getAssetIDByName("ic_download"),
                     onPress: () => {
                       try {
                         // Close the ActionSheet first

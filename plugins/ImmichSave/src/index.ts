@@ -57,54 +57,32 @@ const getCacheFilePath = (filename: string): string => {
   return `/tmp/immich_cache_${timestamp}_${uuidv4()}_${filename}`;
 };
 
-// Helper function to write blob to cache file
+// Helper function to cache blob directly
 const writeBlobToCache = (blob: Blob, cachePath: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  return new Promise((resolve) => {
+    // Store the blob directly in cache without conversion
+    if (typeof window !== 'undefined') {
+      (window as any).__immichCache = (window as any).__immichCache || {};
+      (window as any).__immichCache[cachePath] = blob;
+    } else {
+      (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
+      (globalThis as any).__immichCache[cachePath] = blob;
+    }
     
-    reader.onload = function(event) {
-      try {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        if (!arrayBuffer) {
-          reject(new Error('Failed to read blob data'));
-          return;
-        }
-        
-        const uint8Array = new Uint8Array(arrayBuffer);
-        
-        // Store the data in a global cache object
-        if (typeof window !== 'undefined') {
-          (window as any).__immichCache = (window as any).__immichCache || {};
-          (window as any).__immichCache[cachePath] = uint8Array;
-        } else {
-          (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
-          (globalThis as any).__immichCache[cachePath] = uint8Array;
-        }
-        
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    reader.onerror = function() {
-      reject(new Error('FileReader failed to read blob'));
-    };
-    
-    reader.readAsArrayBuffer(blob);
+    resolve();
   });
 };
 
-// Helper function to read cached file as blob
-const readCacheAsBlob = (cachePath: string, mimeType: string): Blob => {
+// Helper function to read cached blob
+const readCacheAsBlob = (cachePath: string): Blob => {
   const cache = (globalThis as any).__immichCache || (typeof window !== 'undefined' ? (window as any).__immichCache : {});
-  const uint8Array = cache[cachePath];
+  const blob = cache[cachePath];
   
-  if (!uint8Array) {
+  if (!blob) {
     throw new Error(`Cache file not found: ${cachePath}`);
   }
   
-  return new Blob([uint8Array], { type: mimeType });
+  return blob;
 };
 
 // Helper function to delete cached file
@@ -173,7 +151,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
         console.log('[ImmichSave] File cached successfully');
         
         // Verify cache by reading it back
-        const cachedBlob = readCacheAsBlob(cachePath, blob.type);
+        const cachedBlob = readCacheAsBlob(cachePath);
         console.log('[ImmichSave] Verified cached file size:', cachedBlob.size, 'bytes');
         
         if (cachedBlob.size !== blob.size) {

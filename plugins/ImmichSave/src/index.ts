@@ -454,7 +454,8 @@ export default {
                     }
                   });
                   
-                  props.children.unshift(saveToImmichRow);
+                  // Copy ViewRaw's exact approach for adding to the list
+                  props.children = [saveToImmichRow, ...props.children];
                 }
               }
             } catch (e) {

@@ -18,6 +18,109 @@ function uuidv4() {
   );
 }
 
+// Media type detection utilities
+const MediaDetection = {
+  IMAGE_EXTENSIONS: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'],
+  VIDEO_EXTENSIONS: ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'flv', 'wmv'],
+  
+  isImageByContentType: (contentType: string): boolean => {
+    return contentType?.startsWith('image/') || false;
+  },
+  
+  isVideoByContentType: (contentType: string): boolean => {
+    return contentType?.startsWith('video/') || false;
+  },
+  
+  isImageByFilename: (filename: string): boolean => {
+    if (!filename) return false;
+    const ext = filename.toLowerCase().split('.').pop();
+    return MediaDetection.IMAGE_EXTENSIONS.includes(ext || '');
+  },
+  
+  isVideoByFilename: (filename: string): boolean => {
+    if (!filename) return false;
+    const ext = filename.toLowerCase().split('.').pop();
+    return MediaDetection.VIDEO_EXTENSIONS.includes(ext || '');
+  },
+  
+  isMediaAttachment: (attachment: any): boolean => {
+    const isImage = MediaDetection.isImageByContentType(attachment.content_type) || 
+                   MediaDetection.isImageByFilename(attachment.filename);
+    const isVideo = MediaDetection.isVideoByContentType(attachment.content_type) || 
+                   MediaDetection.isVideoByFilename(attachment.filename);
+    return isImage || isVideo;
+  },
+  
+  isMediaEmbed: (embed: any): boolean => {
+    // Check if embed has image or video
+    if (embed.image?.url || embed.video?.url || embed.thumbnail?.url) {
+      return true;
+    }
+    
+    // Check embed type
+    if (embed.type === 'image' || embed.type === 'video' || embed.type === 'gifv') {
+      return true;
+    }
+    
+    return false;
+  },
+  
+  extractMediaFromEmbed: (embed: any): Array<{url: string, filename: string}> => {
+    const media: Array<{url: string, filename: string}> = [];
+    
+    // Extract image
+    if (embed.image?.url) {
+      const url = embed.image.url;
+      const filename = MediaDetection.generateFilenameFromUrl(url, 'image');
+      media.push({ url, filename });
+    }
+    
+    // Extract video
+    if (embed.video?.url) {
+      const url = embed.video.url;
+      const filename = MediaDetection.generateFilenameFromUrl(url, 'video');
+      media.push({ url, filename });
+    }
+    
+    // Extract thumbnail if no other media found
+    if (media.length === 0 && embed.thumbnail?.url) {
+      const url = embed.thumbnail.url;
+      const filename = MediaDetection.generateFilenameFromUrl(url, 'thumbnail');
+      media.push({ url, filename });
+    }
+    
+    return media;
+  },
+  
+  generateFilenameFromUrl: (url: string, type: string): string => {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const segments = pathname.split('/');
+      const lastSegment = segments[segments.length - 1];
+      
+      // If the last segment has an extension, use it
+      if (lastSegment && lastSegment.includes('.')) {
+        return lastSegment;
+      }
+      
+      // Generate filename based on type and timestamp
+      const timestamp = Date.now();
+      const extensions = {
+        image: 'jpg',
+        video: 'mp4',
+        thumbnail: 'jpg'
+      };
+      
+      return `${type}_${timestamp}.${extensions[type as keyof typeof extensions] || 'jpg'}`;
+    } catch (error) {
+      // Fallback filename
+      const timestamp = Date.now();
+      return `${type}_${timestamp}.jpg`;
+    }
+  }
+};
+
 const LazyActionSheet = findByProps("openLazy", "hideActionSheet");
 const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
 const ActionSheetRow = findByProps("ActionSheetRow")?.ActionSheetRow;
@@ -170,33 +273,43 @@ const saveMediaFromMessage = (message: any): void => {
     return;
   }
 
-  const attachments = message.attachments;
-  if (!attachments || attachments.length === 0) {
+  // Collect all media items from attachments and embeds
+  const mediaItems: Array<{url: string, filename: string}> = [];
+
+  // Process attachments
+  if (message.attachments && message.attachments.length > 0) {
+    const mediaAttachments = message.attachments.filter(MediaDetection.isMediaAttachment);
+    mediaAttachments.forEach((att: any) => {
+      mediaItems.push({
+        url: att.url,
+        filename: att.filename
+      });
+    });
+  }
+
+  // Process embeds
+  if (message.embeds && message.embeds.length > 0) {
+    message.embeds.forEach((embed: any) => {
+      if (MediaDetection.isMediaEmbed(embed)) {
+        const embedMedia = MediaDetection.extractMediaFromEmbed(embed);
+        mediaItems.push(...embedMedia);
+      }
+    });
+  }
+
+  if (mediaItems.length === 0) {
     showToast("No media found in this message", getAssetIDByName("ic_close_16px"));
     return;
   }
 
-  const mediaAttachments = attachments.filter((att: any) => {
-    const isImage = att.content_type?.startsWith('image/') || 
-                   /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(att.filename);
-    const isVideo = att.content_type?.startsWith('video/') || 
-                   /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(att.filename);
-    return isImage || isVideo;
-  });
-
-  if (mediaAttachments.length === 0) {
-    showToast("No image or video attachments found", getAssetIDByName("ic_close_16px"));
-    return;
-  }
-
-  showToast(`Uploading ${mediaAttachments.length} file(s) to Immich...`, getAssetIDByName("ic_upload"));
+  showToast(`Uploading ${mediaItems.length} file(s) to Immich...`, getAssetIDByName("ic_upload"));
 
   let successCount = 0;
   let failCount = 0;
   let completedCount = 0;
 
-  const processAttachment = (attachment: any) => {
-    return uploadToImmich(attachment.url, attachment.filename)
+  const processMediaItem = (mediaItem: {url: string, filename: string}) => {
+    return uploadToImmich(mediaItem.url, mediaItem.filename)
       .then(success => {
         if (success) {
           successCount++;
@@ -205,11 +318,11 @@ const saveMediaFromMessage = (message: any): void => {
         }
         completedCount++;
         
-        if (mediaAttachments.length > 1) {
-          showToast(`Progress: ${completedCount}/${mediaAttachments.length} files processed`, getAssetIDByName("ic_check"));
+        if (mediaItems.length > 1) {
+          showToast(`Progress: ${completedCount}/${mediaItems.length} files processed`, getAssetIDByName("ic_check"));
         }
         
-        if (completedCount === mediaAttachments.length) {
+        if (completedCount === mediaItems.length) {
           if (successCount > 0) {
             showToast(`Successfully saved ${successCount} file(s) to Immich!`, getAssetIDByName("ic_check"));
           }
@@ -222,7 +335,7 @@ const saveMediaFromMessage = (message: any): void => {
         failCount++;
         completedCount++;
         
-        if (completedCount === mediaAttachments.length) {
+        if (completedCount === mediaItems.length) {
           if (successCount > 0) {
             showToast(`Successfully saved ${successCount} file(s) to Immich!`, getAssetIDByName("ic_check"));
           }
@@ -233,8 +346,8 @@ const saveMediaFromMessage = (message: any): void => {
       });
   };
 
-  mediaAttachments.forEach(attachment => {
-    processAttachment(attachment);
+  mediaItems.forEach(mediaItem => {
+    processMediaItem(mediaItem);
   });
 };
 
@@ -305,20 +418,16 @@ export default {
                 return;
               }
               
-              const hasMediaAttachments = message.attachments?.some((att: any) => {
-                const isImage = att.content_type?.startsWith('image/') || 
-                               /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(att.filename);
-                const isVideo = att.content_type?.startsWith('video/') || 
-                               /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv)$/i.test(att.filename);
-                return isImage || isVideo;
-              });
+              // Check for media in attachments
+              const hasMediaAttachments = message.attachments?.some(MediaDetection.isMediaAttachment);
               
-              if (!hasMediaAttachments) {
+              // Check for media in embeds
+              const hasMediaEmbeds = message.embeds?.some(MediaDetection.isMediaEmbed);
+
+              if (!hasMediaAttachments && !hasMediaEmbeds) {
                 return;
               }
-              
-              
-              
+
               if (props.children && Array.isArray(props.children) && ActionSheetRow) {
                 
                 const hasImmichOption = props.children.some(child => 

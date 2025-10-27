@@ -18,28 +18,6 @@ function uuidv4() {
   );
 }
 
-// UploadFile class similar to Immich CLI
-class UploadFile extends File {
-  private _blob: Blob;
-  
-  constructor(blob: Blob, filename: string) {
-    super([], filename); // Empty array like CLI does
-    this._blob = blob;
-  }
-  
-  get size() {
-    return this._blob.size;
-  }
-  
-  get type() {
-    return this._blob.type;
-  }
-  
-  stream() {
-    return this._blob.stream();
-  }
-}
-
 const LazyActionSheet = findByProps("openLazy", "hideActionSheet");
 const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
 const ActionSheetRow = findByProps("ActionSheetRow")?.ActionSheetRow;
@@ -99,22 +77,14 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     .then(blob => {
       const formData = new FormData();
 
-      // Create UploadFile instance using the class defined at module level
-      const uploadFile = new UploadFile(blob, filename);
-
-      console.log('[ImmichSave] Created UploadFile like CLI:', {
-        name: uploadFile.name,
-        size: uploadFile.size,
-        type: uploadFile.type
-      });
-      
-      formData.append('assetData', uploadFile);
+      const file = new File([blob], filename);
+      formData.append('assetData', file);
 
       // Create unique deviceAssetId using filename numbers + file size + timestamp
       const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
       const uniqueId = `${numbersFromFilename}-${blob.size}-${Date.now()}`;
       formData.append('deviceAssetId', uniqueId);
-      formData.append('deviceId', 'discord');
+      formData.append('deviceId', 'discord-mobile-v2');
 
       // Use current time for both created/modified (we don't have original file stats)
       const now = new Date().toISOString();

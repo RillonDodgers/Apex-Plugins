@@ -458,7 +458,7 @@ export default {
                   );
                   
                   if (!hasImmichOption) {
-                  const saveToImmichRow = React.createElement(ActionSheetRow, {
+                    const saveToImmichRow = React.createElement(ActionSheetRow, {
                     key: "save-to-immich",
                     label: "Save to Immich",
                     icon: getAssetIDByName("ic_image"),
@@ -475,7 +475,7 @@ export default {
                         showToast(`Failed to save: ${e.message || 'Unknown error'}`, getAssetIDByName("ic_close_16px"));
                       }
                     }
-                  });
+                    });
                     targetGroup.props.children.unshift(saveToImmichRow);
                   }
                 }

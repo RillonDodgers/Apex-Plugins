@@ -51,52 +51,6 @@ const testImmichConnection = (): void => {
   });
 };
 
-// Helper function to create a cache file path
-const getCacheFilePath = (filename: string): string => {
-  const timestamp = Date.now();
-  return `/tmp/immich_cache_${timestamp}_${uuidv4()}_${filename}`;
-};
-
-// Helper function to cache blob directly
-const writeBlobToCache = (blob: Blob, cachePath: string): Promise<void> => {
-  return new Promise((resolve) => {
-    // Store the blob directly in cache without conversion
-    if (typeof window !== 'undefined') {
-      (window as any).__immichCache = (window as any).__immichCache || {};
-      (window as any).__immichCache[cachePath] = blob;
-    } else {
-      (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
-      (globalThis as any).__immichCache[cachePath] = blob;
-    }
-    
-    resolve();
-  });
-};
-
-// Helper function to read cached blob
-const readCacheAsBlob = (cachePath: string): Blob => {
-  const cache = (globalThis as any).__immichCache || (typeof window !== 'undefined' ? (window as any).__immichCache : {});
-  const blob = cache[cachePath];
-  
-  if (!blob) {
-    throw new Error(`Cache file not found: ${cachePath}`);
-  }
-  
-  return blob;
-};
-
-// Helper function to delete cached file
-const deleteCacheFile = (cachePath: string): void => {
-  try {
-    const cache = (globalThis as any).__immichCache || (typeof window !== 'undefined' ? (window as any).__immichCache : {});
-    if (cache[cachePath]) {
-      delete cache[cachePath];
-      console.log('[ImmichSave] Cleaned up cache file:', cachePath);
-    }
-  } catch (error) {
-    console.warn('[ImmichSave] Failed to cleanup cache file:', cachePath, error);
-  }
-};
 
 const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {
   const apiKey = getApiKey();
@@ -112,84 +66,77 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
   console.log('[ImmichSave] Server URL:', serverUrl);
   console.log('[ImmichSave] API Key length:', apiKey.length);
   
-  const cachePath = getCacheFilePath(filename);
-  console.log('[ImmichSave] Cache path:', cachePath);
+  // Create FormData with URI approach (React Native style)
+  const formData = new FormData();
   
-  return fetch(fileUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ImmichSave/1.0)',
-      }
-    })
-    .then(response => {
-      console.log('[ImmichSave] File download response:', response.status, response.statusText);
-      console.log('[ImmichSave] Content-Length:', response.headers.get('content-length'));
-      console.log('[ImmichSave] Content-Type:', response.headers.get('content-type'));
-      
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
-      }
-      
-      const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength) === 0) {
-        throw new Error('Server returned empty file (Content-Length: 0)');
-      }
-      
-      return response.blob();
-    })
-    .then((blob) => {
-      console.log('[ImmichSave] Downloaded blob size:', blob.size, 'bytes');
-      console.log('[ImmichSave] Downloaded blob type:', blob.type);
-      
-      if (blob.size === 0) {
-        throw new Error('Downloaded file is empty (0 bytes)');
-      }
-      
-      // Save to cache
-      console.log('[ImmichSave] Writing to cache...');
-      return writeBlobToCache(blob, cachePath).then(() => {
-        console.log('[ImmichSave] File cached successfully');
-        
-        // Verify cache by reading it back
-        const cachedBlob = readCacheAsBlob(cachePath);
-        console.log('[ImmichSave] Verified cached file size:', cachedBlob.size, 'bytes');
-        
-        if (cachedBlob.size !== blob.size) {
-          throw new Error(`Cache verification failed: expected ${blob.size} bytes, got ${cachedBlob.size} bytes`);
-        }
-        
-        // Create FormData with the cached blob
-        const formData = new FormData();
-        formData.append('assetData', cachedBlob, filename);
+  // Determine MIME type from filename extension
+  const getContentType = (filename: string): string => {
+    const ext = filename.toLowerCase().split('.').pop();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'bmp':
+        return 'image/bmp';
+      case 'svg':
+        return 'image/svg+xml';
+      case 'mp4':
+        return 'video/mp4';
+      case 'mov':
+        return 'video/quicktime';
+      case 'avi':
+        return 'video/x-msvideo';
+      case 'mkv':
+        return 'video/x-matroska';
+      case 'webm':
+        return 'video/webm';
+      default:
+        return 'application/octet-stream';
+    }
+  };
 
-        // Create unique deviceAssetId using filename numbers + file size + timestamp
-        const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
-        const uniqueId = `${numbersFromFilename}-${cachedBlob.size}-${Date.now()}`;
-        formData.append('deviceAssetId', uniqueId);
-        formData.append('deviceId', 'discord-mobile-v2');
+  console.log('[ImmichSave] Creating FormData with URI approach');
+  console.log('[ImmichSave] - File URL:', fileUrl);
+  console.log('[ImmichSave] - Filename:', filename);
+  
+  const contentType = getContentType(filename);
+  console.log('[ImmichSave] - Detected content type:', contentType);
+  
+  // Use React Native FormData approach with uri/name/type
+  formData.append('assetData', {
+    uri: fileUrl,
+    name: filename,
+    type: contentType,
+  } as any);
 
-        // Use current time for both created/modified (we don't have original file stats)
-        const now = new Date().toISOString();
-        formData.append('fileCreatedAt', now);
-        formData.append('fileModifiedAt', now);
+  // Create unique deviceAssetId using filename numbers + timestamp
+  const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
+  const uniqueId = `${numbersFromFilename}-${Date.now()}`;
+  formData.append('deviceAssetId', uniqueId);
+  formData.append('deviceId', 'discord-mobile-v2');
 
-        // Add fileSize - this is crucial for binary integrity!
-        formData.append('fileSize', String(cachedBlob.size));
+  // Use current time for both created/modified (we don't have original file stats)
+  const now = new Date().toISOString();
+  formData.append('fileCreatedAt', now);
+  formData.append('fileModifiedAt', now);
 
-        console.log('[ImmichSave] FormData prepared with cached file');
-        console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
-        
-        return fetch(`${serverUrl}/api/assets`, {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'Accept': 'application/json'
-            // Don't set Content-Type - let browser handle multipart/form-data boundary
-          },
-          body: formData
-        });
-      });
-    })
+  console.log('[ImmichSave] FormData prepared with URI approach');
+  console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
+  
+  return fetch(`${serverUrl}/api/assets`, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'Accept': 'application/json'
+    },
+    body: formData
+  })
     .then(uploadResponse => {
       console.log('[ImmichSave] Upload response status:', uploadResponse.status, uploadResponse.statusText);
       console.log('[ImmichSave] Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()));
@@ -230,10 +177,6 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       
       showToast(`Failed to save: ${errorMessage}`, getAssetIDByName("ic_close_16px"));
       return false;
-    })
-    .finally(() => {
-      // Always cleanup the cache file, regardless of success or failure
-      deleteCacheFile(cachePath);
     });
 };
 

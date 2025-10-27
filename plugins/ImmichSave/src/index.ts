@@ -61,11 +61,6 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     return Promise.resolve(false);
   }
 
-  console.log('[ImmichSave] Starting upload for:', filename);
-  console.log('[ImmichSave] File URL:', fileUrl);
-  console.log('[ImmichSave] Server URL:', serverUrl);
-  console.log('[ImmichSave] API Key length:', apiKey.length);
-  
   // Create FormData with URI approach (React Native style)
   const formData = new FormData();
   
@@ -101,12 +96,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     }
   };
 
-  console.log('[ImmichSave] Creating FormData with URI approach');
-  console.log('[ImmichSave] - File URL:', fileUrl);
-  console.log('[ImmichSave] - Filename:', filename);
-  
   const contentType = getContentType(filename);
-  console.log('[ImmichSave] - Detected content type:', contentType);
   
   // Use React Native FormData approach with uri/name/type
   formData.append('assetData', {
@@ -126,8 +116,6 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
   formData.append('fileCreatedAt', now);
   formData.append('fileModifiedAt', now);
 
-  console.log('[ImmichSave] FormData prepared with URI approach');
-  console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
   
   return fetch(`${serverUrl}/api/assets`, {
     method: 'POST',
@@ -138,18 +126,14 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     body: formData
   })
     .then(uploadResponse => {
-      console.log('[ImmichSave] Upload response status:', uploadResponse.status, uploadResponse.statusText);
-      console.log('[ImmichSave] Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()));
-      
       if (!uploadResponse.ok) {
         return uploadResponse.text().then(errorText => {
-          console.log('[ImmichSave] Upload error response body:', errorText);
+          console.error('[ImmichSave] Upload error response:', errorText);
           throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
         });
       }
       
-      return uploadResponse.text().then(responseText => {
-        console.log('[ImmichSave] Upload success response:', responseText);
+      return uploadResponse.text().then(() => {
         return true;
       });
     })
@@ -348,6 +332,11 @@ export default {
                     icon: getAssetIDByName("ic_download"),
                     onPress: () => {
                       try {
+                        // Close the ActionSheet first
+                        if (LazyActionSheet?.hideActionSheet) {
+                          LazyActionSheet.hideActionSheet();
+                        }
+                        
                         saveMediaFromMessage(message);
                       } catch (e) {
                         console.error("[ImmichSave] Error in Save to Immich handler:", e);

@@ -428,12 +428,13 @@ export default {
                 return;
               }
 
-              // Target the same nested structure that ViewRaw uses
-              const targetChildren = props.children?.props?.children?.props?.children;
-              if (targetChildren && Array.isArray(targetChildren[1]) && ActionSheetRow) {
-                const oldButtons = targetChildren[1];
-                
-                const hasImmichOption = oldButtons.some((child: any) => 
+              // Debug the structure to understand what we're working with
+              console.log("[ImmichSave] Debug - props.children:", props.children);
+              console.log("[ImmichSave] Debug - props.children type:", Array.isArray(props.children));
+              
+              // Try the original approach first
+              if (props.children && Array.isArray(props.children) && ActionSheetRow) {
+                const hasImmichOption = props.children.some(child => 
                   child?.props?.label === "Save to Immich"
                 );
                 
@@ -457,8 +458,8 @@ export default {
                     }
                   });
                   
-                  // Add to the beginning of the same array ViewRaw targets
-                  targetChildren[1] = [saveToImmichRow, ...oldButtons];
+                  // Go back to the simple approach that was working
+                  props.children.unshift(saveToImmichRow);
                 }
               }
             } catch (e) {

@@ -58,22 +58,23 @@ const getCacheFilePath = (filename: string): string => {
 };
 
 // Helper function to write blob to cache file
-const writeBlobToCache = async (blob: Blob, cachePath: string): Promise<void> => {
-  const arrayBuffer = await blob.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  
-  // Use FileSystem API if available, otherwise fall back to different approach
-  if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
-    // We're in a browser environment but can't use cache directly
-    // Store in memory instead for this approach
-    (window as any).__immichCache = (window as any).__immichCache || {};
-    (window as any).__immichCache[cachePath] = uint8Array;
-  } else {
-    // For React Native or other environments, we'll use a different approach
-    // Store the data in a global cache object
-    (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
-    (globalThis as any).__immichCache[cachePath] = uint8Array;
-  }
+const writeBlobToCache = (blob: Blob, cachePath: string): Promise<void> => {
+  return blob.arrayBuffer().then(arrayBuffer => {
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Use FileSystem API if available, otherwise fall back to different approach
+    if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+      // We're in a browser environment but can't use cache directly
+      // Store in memory instead for this approach
+      (window as any).__immichCache = (window as any).__immichCache || {};
+      (window as any).__immichCache[cachePath] = uint8Array;
+    } else {
+      // For React Native or other environments, we'll use a different approach
+      // Store the data in a global cache object
+      (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
+      (globalThis as any).__immichCache[cachePath] = uint8Array;
+    }
+  });
 };
 
 // Helper function to read cached file as blob
@@ -140,7 +141,7 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       
       return response.blob();
     })
-    .then(async (blob) => {
+    .then((blob) => {
       console.log('[ImmichSave] Downloaded blob size:', blob.size, 'bytes');
       console.log('[ImmichSave] Downloaded blob type:', blob.type);
       
@@ -150,46 +151,47 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       
       // Save to cache
       console.log('[ImmichSave] Writing to cache...');
-      await writeBlobToCache(blob, cachePath);
-      console.log('[ImmichSave] File cached successfully');
-      
-      // Verify cache by reading it back
-      const cachedBlob = readCacheAsBlob(cachePath, blob.type);
-      console.log('[ImmichSave] Verified cached file size:', cachedBlob.size, 'bytes');
-      
-      if (cachedBlob.size !== blob.size) {
-        throw new Error(`Cache verification failed: expected ${blob.size} bytes, got ${cachedBlob.size} bytes`);
-      }
-      
-      // Create FormData with the cached blob
-      const formData = new FormData();
-      formData.append('assetData', cachedBlob, filename);
+      return writeBlobToCache(blob, cachePath).then(() => {
+        console.log('[ImmichSave] File cached successfully');
+        
+        // Verify cache by reading it back
+        const cachedBlob = readCacheAsBlob(cachePath, blob.type);
+        console.log('[ImmichSave] Verified cached file size:', cachedBlob.size, 'bytes');
+        
+        if (cachedBlob.size !== blob.size) {
+          throw new Error(`Cache verification failed: expected ${blob.size} bytes, got ${cachedBlob.size} bytes`);
+        }
+        
+        // Create FormData with the cached blob
+        const formData = new FormData();
+        formData.append('assetData', cachedBlob, filename);
 
-      // Create unique deviceAssetId using filename numbers + file size + timestamp
-      const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
-      const uniqueId = `${numbersFromFilename}-${cachedBlob.size}-${Date.now()}`;
-      formData.append('deviceAssetId', uniqueId);
-      formData.append('deviceId', 'discord-mobile-v2');
+        // Create unique deviceAssetId using filename numbers + file size + timestamp
+        const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
+        const uniqueId = `${numbersFromFilename}-${cachedBlob.size}-${Date.now()}`;
+        formData.append('deviceAssetId', uniqueId);
+        formData.append('deviceId', 'discord-mobile-v2');
 
-      // Use current time for both created/modified (we don't have original file stats)
-      const now = new Date().toISOString();
-      formData.append('fileCreatedAt', now);
-      formData.append('fileModifiedAt', now);
+        // Use current time for both created/modified (we don't have original file stats)
+        const now = new Date().toISOString();
+        formData.append('fileCreatedAt', now);
+        formData.append('fileModifiedAt', now);
 
-      // Add fileSize - this is crucial for binary integrity!
-      formData.append('fileSize', String(cachedBlob.size));
+        // Add fileSize - this is crucial for binary integrity!
+        formData.append('fileSize', String(cachedBlob.size));
 
-      console.log('[ImmichSave] FormData prepared with cached file');
-      console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
-      
-      return fetch(`${serverUrl}/api/assets`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'Accept': 'application/json'
-          // Don't set Content-Type - let browser handle multipart/form-data boundary
-        },
-        body: formData
+        console.log('[ImmichSave] FormData prepared with cached file');
+        console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
+        
+        return fetch(`${serverUrl}/api/assets`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Accept': 'application/json'
+            // Don't set Content-Type - let browser handle multipart/form-data boundary
+          },
+          body: formData
+        });
       });
     })
     .then(uploadResponse => {

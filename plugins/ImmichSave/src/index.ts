@@ -428,17 +428,34 @@ export default {
                 return;
               }
 
-              // Debug the structure to understand what we're working with
-              console.log("[ImmichSave] Debug - props.children:", props.children);
-              console.log("[ImmichSave] Debug - props.children type:", Array.isArray(props.children));
-              
-              // Try the original approach first
+              // Find the group that contains media-related actions like "Save Image"
               if (props.children && Array.isArray(props.children) && ActionSheetRow) {
-                const hasImmichOption = props.children.some(child => 
-                  child?.props?.label === "Save to Immich"
-                );
+                // Look for the group that contains "Save Image" or similar media actions
+                let targetGroupIndex = -1;
+                let targetGroup = null;
                 
-                if (!hasImmichOption) {
+                for (let i = 0; i < props.children.length; i++) {
+                  const group = props.children[i];
+                  if (group?.props?.children && Array.isArray(group.props.children)) {
+                    const hasMediaActions = group.props.children.some((child: any) => 
+                      child?.props?.label === "Save Image" || 
+                      child?.props?.label === "Save Video" ||
+                      child?.props?.label === "Copy Media Link"
+                    );
+                    if (hasMediaActions) {
+                      targetGroupIndex = i;
+                      targetGroup = group;
+                      break;
+                    }
+                  }
+                }
+                
+                if (targetGroup && targetGroupIndex >= 0) {
+                  const hasImmichOption = targetGroup.props.children.some((child: any) => 
+                    child?.props?.label === "Save to Immich"
+                  );
+                  
+                  if (!hasImmichOption) {
                   const saveToImmichRow = React.createElement(ActionSheetRow, {
                     key: "save-to-immich",
                     label: "Save to Immich",
@@ -457,9 +474,8 @@ export default {
                       }
                     }
                   });
-                  
-                  // Go back to the simple approach that was working
-                  props.children.unshift(saveToImmichRow);
+                    targetGroup.props.children.unshift(saveToImmichRow);
+                  }
                 }
               }
             } catch (e) {

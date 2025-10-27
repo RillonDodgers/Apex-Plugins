@@ -51,6 +51,56 @@ const testImmichConnection = (): void => {
   });
 };
 
+// Helper function to create a cache file path
+const getCacheFilePath = (filename: string): string => {
+  const timestamp = Date.now();
+  return `/tmp/immich_cache_${timestamp}_${uuidv4()}_${filename}`;
+};
+
+// Helper function to write blob to cache file
+const writeBlobToCache = async (blob: Blob, cachePath: string): Promise<void> => {
+  const arrayBuffer = await blob.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  
+  // Use FileSystem API if available, otherwise fall back to different approach
+  if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+    // We're in a browser environment but can't use cache directly
+    // Store in memory instead for this approach
+    (window as any).__immichCache = (window as any).__immichCache || {};
+    (window as any).__immichCache[cachePath] = uint8Array;
+  } else {
+    // For React Native or other environments, we'll use a different approach
+    // Store the data in a global cache object
+    (globalThis as any).__immichCache = (globalThis as any).__immichCache || {};
+    (globalThis as any).__immichCache[cachePath] = uint8Array;
+  }
+};
+
+// Helper function to read cached file as blob
+const readCacheAsBlob = (cachePath: string, mimeType: string): Blob => {
+  const cache = (globalThis as any).__immichCache || (typeof window !== 'undefined' ? (window as any).__immichCache : {});
+  const uint8Array = cache[cachePath];
+  
+  if (!uint8Array) {
+    throw new Error(`Cache file not found: ${cachePath}`);
+  }
+  
+  return new Blob([uint8Array], { type: mimeType });
+};
+
+// Helper function to delete cached file
+const deleteCacheFile = (cachePath: string): void => {
+  try {
+    const cache = (globalThis as any).__immichCache || (typeof window !== 'undefined' ? (window as any).__immichCache : {});
+    if (cache[cachePath]) {
+      delete cache[cachePath];
+      console.log('[ImmichSave] Cleaned up cache file:', cachePath);
+    }
+  } catch (error) {
+    console.warn('[ImmichSave] Failed to cleanup cache file:', cachePath, error);
+  }
+};
+
 const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => {
   const apiKey = getApiKey();
   const serverUrl = getServerUrl();
@@ -60,29 +110,64 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
     return Promise.resolve(false);
   }
 
-  
   console.log('[ImmichSave] Starting upload for:', filename);
   console.log('[ImmichSave] File URL:', fileUrl);
   console.log('[ImmichSave] Server URL:', serverUrl);
   console.log('[ImmichSave] API Key length:', apiKey.length);
   
-  return fetch(fileUrl)
+  const cachePath = getCacheFilePath(filename);
+  console.log('[ImmichSave] Cache path:', cachePath);
+  
+  return fetch(fileUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ImmichSave/1.0)',
+      }
+    })
     .then(response => {
       console.log('[ImmichSave] File download response:', response.status, response.statusText);
+      console.log('[ImmichSave] Content-Length:', response.headers.get('content-length'));
+      console.log('[ImmichSave] Content-Type:', response.headers.get('content-type'));
+      
       if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.status}`);
+        throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
       }
+      
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) === 0) {
+        throw new Error('Server returned empty file (Content-Length: 0)');
+      }
+      
       return response.blob();
     })
-    .then(blob => {
+    .then(async (blob) => {
+      console.log('[ImmichSave] Downloaded blob size:', blob.size, 'bytes');
+      console.log('[ImmichSave] Downloaded blob type:', blob.type);
+      
+      if (blob.size === 0) {
+        throw new Error('Downloaded file is empty (0 bytes)');
+      }
+      
+      // Save to cache
+      console.log('[ImmichSave] Writing to cache...');
+      await writeBlobToCache(blob, cachePath);
+      console.log('[ImmichSave] File cached successfully');
+      
+      // Verify cache by reading it back
+      const cachedBlob = readCacheAsBlob(cachePath, blob.type);
+      console.log('[ImmichSave] Verified cached file size:', cachedBlob.size, 'bytes');
+      
+      if (cachedBlob.size !== blob.size) {
+        throw new Error(`Cache verification failed: expected ${blob.size} bytes, got ${cachedBlob.size} bytes`);
+      }
+      
+      // Create FormData with the cached blob
       const formData = new FormData();
-
-      const file = new File([blob], filename);
-      formData.append('assetData', file);
+      formData.append('assetData', cachedBlob, filename);
 
       // Create unique deviceAssetId using filename numbers + file size + timestamp
       const numbersFromFilename = filename.match(/\d+/g)?.join('') || '';
-      const uniqueId = `${numbersFromFilename}-${blob.size}-${Date.now()}`;
+      const uniqueId = `${numbersFromFilename}-${cachedBlob.size}-${Date.now()}`;
       formData.append('deviceAssetId', uniqueId);
       formData.append('deviceId', 'discord-mobile-v2');
 
@@ -92,10 +177,9 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       formData.append('fileModifiedAt', now);
 
       // Add fileSize - this is crucial for binary integrity!
-      formData.append('fileSize', String(blob.size));
+      formData.append('fileSize', String(cachedBlob.size));
 
-      // FormData logging can interfere with binary data
-      
+      console.log('[ImmichSave] FormData prepared with cached file');
       console.log('[ImmichSave] Uploading to:', `${serverUrl}/api/assets`);
       
       return fetch(`${serverUrl}/api/assets`, {
@@ -148,6 +232,10 @@ const uploadToImmich = (fileUrl: string, filename: string): Promise<boolean> => 
       
       showToast(`Failed to save: ${errorMessage}`, getAssetIDByName("ic_close_16px"));
       return false;
+    })
+    .finally(() => {
+      // Always cleanup the cache file, regardless of success or failure
+      deleteCacheFile(cachePath);
     });
 };
 

@@ -428,9 +428,12 @@ export default {
                 return;
               }
 
-              if (props.children && Array.isArray(props.children) && ActionSheetRow) {
+              // Target the same nested structure that ViewRaw uses
+              const targetChildren = props.children?.props?.children?.props?.children;
+              if (targetChildren && Array.isArray(targetChildren[1]) && ActionSheetRow) {
+                const oldButtons = targetChildren[1];
                 
-                const hasImmichOption = props.children.some(child => 
+                const hasImmichOption = oldButtons.some((child: any) => 
                   child?.props?.label === "Save to Immich"
                 );
                 
@@ -454,8 +457,8 @@ export default {
                     }
                   });
                   
-                  // Copy ViewRaw's exact approach for adding to the list
-                  props.children = [saveToImmichRow, ...props.children];
+                  // Add to the beginning of the same array ViewRaw targets
+                  targetChildren[1] = [saveToImmichRow, ...oldButtons];
                 }
               }
             } catch (e) {

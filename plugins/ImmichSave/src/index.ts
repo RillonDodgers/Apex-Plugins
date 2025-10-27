@@ -9,6 +9,8 @@ import {
   updateServerUrl,
   isConfigured
 } from "./Settings";
+import { React } from "@vendetta/metro/common";
+import { Forms } from "@vendetta/ui/components";
 
 function uuidv4() {
   return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
@@ -37,8 +39,6 @@ class UploadFile extends File {
     return this._blob.stream();
   }
 }
-import { React } from "@vendetta/metro/common";
-import { Forms } from "@vendetta/ui/components";
 
 const LazyActionSheet = findByProps("openLazy", "hideActionSheet");
 const ActionSheet = findByProps("ActionSheet")?.ActionSheet;
